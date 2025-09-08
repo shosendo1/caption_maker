@@ -26,7 +26,7 @@
             border: 1px solid #E0D9C8;
             box-shadow: 0 4px 12px rgba(0,0,0,0.05);
         }
-        #imageAnalysisResult, #uploadedImage {
+        #imageAnalysisResult, #uploadedImage, .extra-content-card {
             animation: fadeIn 0.8s ease-out;
         }
         @keyframes fadeIn {
@@ -84,23 +84,31 @@
         .caption-text {
             font-family: 'Noto Serif JP', serif;
         }
+        .sns-post {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            background-color: #f9f9f9;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            border: 1px solid #eee;
+        }
     </style>
 </head>
-<body class="antialiased flex flex-col items-center min-h-screen p-2 sm:p-4">
+<body class="antialiased flex flex-col items-center min-h-screen p-3 sm:p-4">
     <main class="w-full max-w-4xl text-center bg-gray-100 p-4 sm:p-8 rounded-lg shadow-inner card">
-        <h2 class="text-3xl md:text-4xl font-bold mb-6 text-[#4A4A4A]">✨ AIキャプションメーカー ✨</h2>
-        <p class="text-base sm:text-lg mb-8 text-[#6B6B6B]">表美展に出展するあなたの作品をアップロードして、AIに「温故創新」のテーマに沿ったキャプションを生成してもらいましょう。</p>
+        <h2 class="text-2xl sm:text-3xl md:text-4xl font-bold mb-4 sm:mb-6 text-[#4A4A4A]">✨ AIキャプションメーカー ✨</h2>
+        <p class="text-sm sm:text-lg mb-6 sm:mb-8 text-[#6B6B6B]">表美展に出展するあなたの作品をアップロードして、AIに「温故創新」のテーマに沿ったキャプションを生成してもらいましょう。</p>
 
         <!-- Image Preview Section -->
-        <div id="imagePreviewContainer" class="mb-8 hidden">
+        <div id="imagePreviewContainer" class="mb-6 sm:mb-8 hidden">
             <img id="uploadedImage" class="max-h-[250px] sm:max-h-[400px] w-auto h-auto rounded-lg shadow-md mx-auto object-contain">
         </div>
 
-        <div class="space-y-6">
+        <div class="space-y-4 sm:space-y-6">
             <div class="text-left p-4 sm:p-6 rounded-lg card">
                 <p class="text-sm mb-4 font-semibold">ステップ1: 作品の写真をアップロード</p>
                 <div class="flex flex-col items-center justify-center">
-                    <label for="imageInput" class="button inline-block py-3 px-6 rounded-md bg-[#0E4D92] text-white cursor-pointer hover:bg-[#1263B7]">
+                    <label for="imageInput" class="button inline-block py-2 px-5 sm:py-3 sm:px-6 rounded-md bg-[#0E4D92] text-white cursor-pointer hover:bg-[#1263B7]">
                         <span id="fileName">ファイルを選択</span>
                     </label>
                     <input type="file" id="imageInput" accept="image/*" onchange="displayFileName(event)" class="hidden">
@@ -112,7 +120,7 @@
             </div>
             <div class="text-left p-4 sm:p-6 rounded-lg card">
                 <p class="text-sm mb-4 font-semibold">ステップ3: キャプションを生成</p>
-                <button onclick="analyzeImage()" class="button w-full py-3 px-6 bg-[#0E4D92] text-white rounded-md hover:bg-[#1263B7]">
+                <button onclick="analyzeImage()" class="button w-full py-2 px-5 sm:py-3 sm:px-6 bg-[#0E4D92] text-white rounded-md hover:bg-[#1263B7]">
                     キャプションを生成する
                 </button>
             </div>
@@ -128,21 +136,12 @@
 
     <script>
         // ---全体で使う変数の設定---
-
-        // Google AI Studioで取得したAPIキーを設定します。
-        // 重要：このキーはサンプルです。ご自身のキーに置き換えてください。
         const API_KEY = "AIzaSyBmuD2c_M6Kg_GRk7TJpqXGNzsZGH3FeME";
-        
-        // 現在の画像を保存しておくための変数
         let currentImageBase64 = null;
-        // 現在のキーワードを保存しておくための変数
         let currentKeywords = "";
-        // 現在の画像のファイル形式（例: image/jpeg）を保存しておくための変数
         let currentMimeType = null;
 
         // ---AIに渡す参考資料---
-
-        // 表美展の開催要項を定数として定義します。AIはこの情報を元にキャプションを考えます。
         const EXHIBITION_DOCUMENT = `第70回記念表美展 開催要項
 「温故創新-Innovation from the past」
 開催概要
@@ -163,42 +162,28 @@
 オフライン : 京都市営地下鉄改札付近でのポスター掲示により、効果的な集客を図ります。
 出展要項
 自由出品 : 「自由出品（褒章審査対象外）」を受け付け、多くの組合員の皆様からのご応募をお待ちしております。
-作品説明 : 出品作品には、例年通りキャプション（説明文）を添えて展示いたします。
-【出品詳細】
-出品審査 : 本展にふさわしい作品であるかを厳正に審査いたします。自由出品（褒章審査対象外）の場合も、適切な作品であることを確認いたしますが、出品物に対する最終責任は出品者ご本人様とさせていただきます。
-陳列開始 : 7年10月17日(金)午前10時30分を予定しております。
-褒章 : 経済産業省大臣官房商務・サービス審議官賞、近畿経済産業局長賞、知事賞、市長賞、京都府中小企業団体中央会会長賞、京都商工会議所会頭賞、京都新聞賞を予定しております。
-表彰式 : 令和8年1月の「京都表具協同組合新年会」にて執り行う予定です。
-出品点数 : お一人様何点でも出展可能です。長尺・幅広の表装および大型アートパネルも出品可能ですが、必ず事前にご相談ください。
-申込締切 : 7年10月7日(火)`;
+作品説明 : 出品作品には、例年通りキャプション（説明文）を添えて展示いたします。`;
 
         // ---画面の操作に関する関数---
-
-        // ファイルが選択された時に、ファイル名を表示し、画像のプレビューを見せる関数
         function displayFileName(event) {
-            const fileInput = event.target; // ファイル選択の要素を取得
-            const fileNameSpan = document.getElementById('fileName'); // ファイル名を表示する場所を取得
-            const uploadedImage = document.getElementById('uploadedImage'); // 画像プレビューの場所を取得
-            const imagePreviewContainer = document.getElementById('imagePreviewContainer'); // 画像プレビュー全体を囲む要素を取得
-            const file = fileInput.files[0]; // 選択されたファイルを取得
+            const fileInput = event.target;
+            const fileNameSpan = document.getElementById('fileName');
+            const uploadedImage = document.getElementById('uploadedImage');
+            const imagePreviewContainer = document.getElementById('imagePreviewContainer');
+            const file = fileInput.files[0];
 
             if (file) {
-                // ファイルが選択されている場合
-                fileNameSpan.textContent = file.name; // ファイル名を表示
-                uploadedImage.src = URL.createObjectURL(file); // 画像のプレビューを表示
-                imagePreviewContainer.classList.remove('hidden'); // 画像プレビューのコンテナを表示状態にする
+                fileNameSpan.textContent = file.name;
+                uploadedImage.src = URL.createObjectURL(file);
+                imagePreviewContainer.classList.remove('hidden');
             } else {
-                // ファイルが選択されていない場合
-                fileNameSpan.textContent = 'ファイルを選択'; // 表示を元に戻す
-                imagePreviewContainer.classList.add('hidden'); // 画像プレビューのコンテナを隠す
+                fileNameSpan.textContent = 'ファイルを選択';
+                imagePreviewContainer.classList.add('hidden');
             }
         }
 
         // ---AIとの通信に関するメインの関数---
-
-        // 「キャプションを生成する」ボタンが押された時に動く関数
         async function analyzeImage() {
-            // 必要な情報を画面から取得
             const fileInput = document.getElementById('imageInput');
             const keywordsInput = document.getElementById('keywordsInput');
             const file = fileInput.files[0];
@@ -206,25 +191,20 @@
             const resultDiv = document.getElementById('imageAnalysisResult');
             const generateButton = document.querySelector('button');
 
-            // 画像が選択されていなければ、エラーメッセージを表示して処理を中断
             if (!file) {
                 resultDiv.innerHTML = '<p class="text-red-500">画像をアップロードしてください。</p>';
                 return;
             }
 
-            // 処理中の表示に切り替え
             resultDiv.innerHTML = '<div class="flex flex-col items-center space-y-2"><div class="dot-pulse"></div><p class="text-sm text-gray-500">AIが作品を分析中です。完了までしばらくお待ちください。</p></div>';
-            generateButton.disabled = true; // ボタンを一時的に押せなくする
+            generateButton.disabled = true;
 
-            // ファイルを読み込む準備
             const reader = new FileReader();
             reader.onloadend = async () => {
-                // ファイルの読み込みが終わったら、以下の処理を実行
-                currentImageBase64 = reader.result.split(',')[1]; // 画像データをBase64形式に変換
-                currentKeywords = keywords; // 入力されたキーワードを保存
-                currentMimeType = file.type; // ファイル形式を保存
+                currentImageBase64 = reader.result.split(',')[1];
+                currentKeywords = keywords;
+                currentMimeType = file.type;
                 
-                // AIへの指示（プロンプト）を作成
                 const prompt = `以下のドキュメントを参考に、この画像に写っている第70回記念表美展に出展する私の作品について、作者である表具師本人の目線で、3つの異なるキャプション案を生成してください。
 
 ドキュメント:
@@ -239,26 +219,17 @@
 
 ${keywords ? `\n以下のキーワードをキャプションに反映させてください: ${keywords}` : ''}`;
                     
-                // Google AIのAPIのエンドポイントURL
                 const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${API_KEY}`;
                 
-                // APIに送信するデータ（ペイロード）を作成
                 const payload = {
-                    contents: [{
-                        parts: [
-                            { text: prompt }, // AIへの指示
-                            { inlineData: { mimeType: currentMimeType, data: currentImageBase64 } } // 画像データ
-                        ]
-                    }],
+                    contents: [{ parts: [{ text: prompt }, { inlineData: { mimeType: currentMimeType, data: currentImageBase64 } }] }],
                     generationConfig: {
-                        responseMimeType: "application/json", // 応答をJSON形式で要求
-                        responseSchema: { // 期待するJSONの構造を定義
+                        responseMimeType: "application/json",
+                        responseSchema: {
                             type: "ARRAY",
                             items: {
                                 type: "OBJECT",
-                                properties: {
-                                    "caption": { "type": "STRING" }
-                                },
+                                properties: { "caption": { "type": "STRING" } },
                                 "propertyOrdering": ["caption"]
                             }
                         }
@@ -266,63 +237,67 @@ ${keywords ? `\n以下のキーワードをキャプションに反映させて�
                 };
 
                 try {
-                    // APIを呼び出して結果を取得（エラーの場合はリトライする関数を使用）
                     const result = await fetchWithRetry(apiUrl, payload);
                     
-                    // 結果が正しく返ってきた場合の処理
                     if (result.candidates && result.candidates[0].content.parts[0].text) {
                         const rawJsonText = result.candidates[0].content.parts[0].text;
                         let captions;
-                        // AIの応答からJSONデータを抽出
                         try {
                             captions = JSON.parse(rawJsonText);
-                        } catch (directParseError) {
+                        } catch (e) {
                             const jsonMatch = rawJsonText.match(/\[\s*\{[\s\S]*\}\s*\]/);
-                            if (jsonMatch && jsonMatch[0]) {
-                                try {
-                                    captions = JSON.parse(jsonMatch[0]);
-                                } catch (regexParseError) {
-                                    throw new Error('抽出したJSONの解析に失敗しました: ' + regexParseError.message);
-                                }
-                            } else {
-                                throw new Error('API応答に有効なJSONブロックが見つかりませんでした。');
-                            }
+                            if (jsonMatch && jsonMatch[0]) { captions = JSON.parse(jsonMatch[0]); } 
+                            else { throw new Error('API応答に有効なJSONブロックが見つかりませんでした。'); }
                         }
                         
-                        // データの構造が期待通りかチェック
                         if (!Array.isArray(captions) || captions.length < 3 || !captions[0].caption) {
-                            throw new Error('無効なJSON構造です。少なくとも3つのオブジェクトを含む配列を期待しました。');
+                            throw new Error('無効なJSON構造です。');
                         }
 
-                        // 結果を画面に表示するためのHTMLを作成
                         let resultHtml = `
                             <div class="space-y-6">
                                 ${captions.map((item, index) => `
                                     <div class="p-4 rounded-md card">
-                                        <div class="flex items-center justify-between">
-                                            <h3 class="font-bold text-lg mb-2 text-[#4A4A4A]">キャプション案${index + 1}</h3>
-                                            <div class="flex space-x-2">
-                                                <button onclick="copyToClipboard(this)" class="text-sm px-3 py-1 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors">コピー</button>
-                                                <button onclick="startChat(${index}, \`${escapeHtml(item.caption)}\`)" class="text-sm px-3 py-1 bg-[#0E4D92] text-white rounded-md hover:bg-[#1263B7]">AIとチャットする</button>
+                                        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                                            <h3 class="font-bold text-md sm:text-lg text-left text-[#4A4A4A]">キャプション案${index + 1}</h3>
+                                            <div class="flex space-x-2 self-end sm:self-auto">
+                                                <button onclick="copyToClipboard(this)" class="button text-sm px-3 py-1 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors whitespace-nowrap">コピー</button>
+                                                <button onclick="startChat(${index}, \`${escapeHtml(item.caption)}\`)" class="button text-sm px-3 py-1 bg-[#0E4D92] text-white rounded-md hover:bg-[#1263B7] whitespace-nowrap">AIとチャット</button>
                                             </div>
                                         </div>
-                                        <p class="mt-2 caption-text" data-index="${index}">${item.caption}</p>
+                                        <p class="mt-4 text-left caption-text" data-index="${index}">${escapeHtml(item.caption)}</p>
+                                        <div class="mt-4 pt-4 border-t border-gray-200 flex flex-col sm:flex-row gap-2 justify-end">
+                                            <button onclick="generateSocialMediaPost(${index}, \`${escapeHtml(item.caption)}\`)" class="button text-sm px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700">✨ SNS投稿を作成</button>
+                                        </div>
+                                        <div id="extra-content-${index}" class="mt-4 text-left"></div>
                                     </div>
                                 `).join('')}
                             </div>
                         `;
-                        // 作成したHTMLを画面に表示
                         resultDiv.innerHTML = resultHtml;
 
-                    } else {
-                        throw new Error('APIから有効な応答がありませんでした。');
-                    }
+                    } else { throw new Error('APIから有効な応答がありませんでした。'); }
                 } catch (error) {
-                    // エラーが発生した場合の処理
                     console.error('Error analyzing image:', error);
-                    resultDiv.innerHTML = `<p class="text-red-500">キャプションの生成中にエラーが発生しました。詳細: ${error.message}</p>`;
+                    let errorMessage;
+                    if (error.message && error.message.includes('403')) {
+                        errorMessage = `<div class="text-left">
+                                          <p class="text-red-500 font-bold">アクセスが拒否されました (エラーコード: 403)</p>
+                                          <p class="text-sm mt-2"><strong>原因:</strong> Googleのセキュリティ機能が、このテストサイトからのアクセスをブロックしました。</p>
+                                          <p class="text-sm mt-2"><strong>解決策:</strong> 以下の手順で、このテストサイトをAPIキーの許可リストに追加してください。</p>
+                                          <ol class="list-decimal list-inside mt-2 text-sm space-y-1">
+                                            <li><a href="https://console.cloud.google.com/apis/credentials" target="_blank" class="text-blue-600 underline">Google Cloud Console</a> を開き、お使いのAPIキーをクリックします。</li>
+                                            <li>「ウェブサイトの制限」で「追加」ボタンを押します。</li>
+                                            <li>以下の文字列をコピーして、入力欄に貼り付けます:</li>
+                                          </ol>
+                                          <div class="mt-2 p-2 bg-gray-100 rounded">
+                                            <strong class="font-mono text-xs">${window.location.hostname}/*</strong>
+                                          </div>
+                                          <p class="text-sm mt-2">4. 「保存」ボタンを押し、数分待ってから再度お試しください。</p>
+                                        </div>`;
+                    } else { errorMessage = `<p class="text-red-500">キャプションの生成中にエラーが発生しました。詳細: ${error.message}</p>`; }
+                    resultDiv.innerHTML = errorMessage;
                 } finally {
-                    // 処理が成功しても失敗しても、最後にボタンを押せるように戻す
                     generateButton.disabled = false;
                 }
             };
@@ -330,25 +305,23 @@ ${keywords ? `\n以下のキーワードをキャプションに反映させて�
         }
         
         // ---AIとのチャット機能に関する関数---
-
-        // 特定のキャプションを編集するためのチャットUIを開始する関数
         async function startChat(captionIndex, initialCaption) {
             const resultDiv = document.getElementById('imageAnalysisResult');
             const chatHtml = `
                 <div id="chatInterface" class="space-y-4">
-                    <button onclick="resetApp()" class="text-sm py-1 px-3 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors mb-4">← 戻る</button>
-                    <div id="chatHistory" class="h-48 sm:h-64 overflow-y-auto p-2 sm:p-4 bg-gray-50 rounded-md border border-gray-200">
+                    <button onclick="resetApp()" class="button text-sm py-1 px-3 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors mb-4">← 最初の画面に戻る</button>
+                    <div id="chatHistory" class="h-64 sm:h-80 overflow-y-auto p-2 sm:p-4 bg-gray-50 rounded-md border border-gray-200">
                         <div class="flex items-start mb-4">
-                            <span class="flex-shrink-0 inline-block p-2 rounded-full bg-[#0E4D92] text-white font-bold mr-2 sm:mr-3">AI</span>
+                            <span class="flex-shrink-0 inline-flex items-center justify-center h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-[#0E4D92] text-white font-bold mr-2 sm:mr-3 text-sm">AI</span>
                             <div class="p-2 sm:p-3 bg-white rounded-lg shadow-sm w-full">
-                                <p>このキャプションを、どのように編集しましょうか？</p>
-                                <p class="mt-2 text-sm text-gray-500 caption-text break-words">"${initialCaption}"</p>
+                                <p class="text-sm sm:text-base">このキャプションを、どのように編集しましょうか？</p>
+                                <p class="mt-2 text-xs sm:text-sm text-gray-500 caption-text break-words">"${initialCaption}"</p>
                             </div>
                         </div>
                     </div>
                     <div class="flex">
-                        <input type="text" id="chatInput" placeholder="例：もっと短くしてください" class="flex-grow p-2 rounded-l-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#0E4D92] transition-all">
-                        <button onclick="sendChatMessage()" class="py-2 px-6 bg-[#0E4D92] text-white rounded-r-md hover:bg-[#1263B7]">送信</button>
+                        <input type="text" id="chatInput" placeholder="例：もっと短くしてください" class="text-sm sm:text-base flex-grow p-2 rounded-l-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#0E4D92] transition-all">
+                        <button onclick="sendChatMessage()" class="button py-2 px-4 sm:px-6 bg-[#0E4D92] text-white rounded-r-md hover:bg-[#1263B7] text-sm sm:text-base">送信</button>
                     </div>
                 </div>
             `;
@@ -356,7 +329,6 @@ ${keywords ? `\n以下のキーワードをキャプションに反映させて�
             document.getElementById('chatInput').focus();
         }
 
-        // チャットメッセージを送信し、キャプションを再生成する関数
         async function sendChatMessage() {
             const chatInput = document.getElementById('chatInput');
             const userMessage = chatInput.value;
@@ -364,119 +336,211 @@ ${keywords ? `\n以下のキーワードをキャプションに反映させて�
             
             if (!userMessage.trim()) return;
 
-            // ユーザーメッセージをチャット履歴に追加
             const userMessageDiv = document.createElement('div');
             userMessageDiv.className = "flex items-start justify-end mb-4";
             userMessageDiv.innerHTML = `
                 <div class="p-2 sm:p-3 bg-[#EBF5FF] rounded-lg shadow-sm max-w-[80%]">
-                    <p class="break-words">${escapeHtml(userMessage)}</p>
+                    <p class="text-sm sm:text-base break-words">${escapeHtml(userMessage)}</p>
                 </div>
-                <span class="flex-shrink-0 inline-block p-2 rounded-full bg-gray-400 text-white font-bold ml-2 sm:ml-3">あなた</span>
+                <span class="flex-shrink-0 inline-flex items-center justify-center h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-gray-400 text-white font-bold ml-2 sm:ml-3 text-sm">あなた</span>
             `;
             chatHistory.appendChild(userMessageDiv);
             chatHistory.scrollTop = chatHistory.scrollHeight;
             chatInput.value = "";
             
-            // ローディング表示をチャット履歴に追加
             const loadingDiv = document.createElement('div');
             loadingDiv.id = "loadingIndicator";
             loadingDiv.className = "flex items-start mb-4";
-            loadingDiv.innerHTML = `
-                <span class="flex-shrink-0 inline-block p-2 rounded-full bg-[#0E4D92] text-white font-bold mr-2 sm:mr-3">AI</span>
-                <div class="p-2 sm:p-3 bg-white rounded-lg shadow-sm">
-                    <div class="dot-pulse"></div>
-                </div>
-            `;
+            loadingDiv.innerHTML = `<span class="flex-shrink-0 ...">AI</span><div class="..."><div class="dot-pulse"></div></div>`;
             chatHistory.appendChild(loadingDiv);
             chatHistory.scrollTop = chatHistory.scrollHeight;
             
-            const currentCaptionElement = document.getElementById('chatHistory').querySelector('p.text-sm');
+            const currentCaptionElement = document.getElementById('chatHistory').querySelector('p.caption-text');
             const currentCaption = currentCaptionElement ? currentCaptionElement.textContent.trim().replace(/^"/, '').replace(/"$/, '') : "";
             
             try {
-                // AIへの指示（プロンプト）を作成
-                const prompt = `以下のキャプションを、ユーザーの指示に沿って、作者である表具師の視点をより強く反映させて再生成してください。
-                
-現在のキャプション: "${currentCaption}"
-ユーザーの指示: "${userMessage}"
-${currentKeywords ? `\n以下のキーワードも考慮してください: ${currentKeywords}` : ''}`;
-                
+                const prompt = `以下のキャプションを、ユーザーの指示に沿って、作者である表具師の視点をより強く反映させて再生成してください。\n\n現在のキャプション: "${currentCaption}"\nユーザーの指示: "${userMessage}"\n${currentKeywords ? `以下のキーワードも考慮してください: ${currentKeywords}` : ''}`;
                 const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${API_KEY}`;
-                
-                // APIに送信するデータ（ペイロード）を作成
                 const payload = {
-                    contents: [{
-                        parts: [
-                            { text: prompt },
-                            { inlineData: { mimeType: currentMimeType, data: currentImageBase64 } }
-                        ]
-                    }],
+                    contents: [{ parts: [{ text: prompt }, { inlineData: { mimeType: currentMimeType, data: currentImageBase64 } }] }],
                     generationConfig: {
                         responseMimeType: "application/json",
-                        responseSchema: {
-                            type: "OBJECT",
-                            properties: {
-                                "caption": { "type": "STRING" }
-                            },
-                            "propertyOrdering": ["caption"]
-                        }
+                        responseSchema: { type: "OBJECT", properties: { "caption": { "type": "STRING" } }, "propertyOrdering": ["caption"] }
                     }
                 };
                 
                 const result = await fetchWithRetry(apiUrl, payload);
-                
-                document.getElementById('loadingIndicator').remove();
+                loadingDiv.remove();
                 
                 if (result.candidates && result.candidates[0].content.parts[0].text) {
                     const rawJsonText = result.candidates[0].content.parts[0].text;
                     let newCaption;
-                    try {
-                        const parsed = JSON.parse(rawJsonText);
-                        newCaption = parsed.caption;
-                    } catch (e) {
+                    try { newCaption = JSON.parse(rawJsonText).caption; } catch (e) {
                         const captionMatch = rawJsonText.match(/"caption"\s*:\s*"(.*?)"/s);
                         newCaption = captionMatch ? captionMatch[1] : rawJsonText;
                     }
                     
-                    // AIの返信をチャット履歴に追加
                     const aiMessageDiv = document.createElement('div');
                     aiMessageDiv.className = "flex items-start mb-4";
                     aiMessageDiv.innerHTML = `
-                        <span class="flex-shrink-0 inline-block p-2 rounded-full bg-[#0E4D92] text-white font-bold mr-2 sm:mr-3">AI</span>
-                        <div class="p-2 sm:p-3 bg-white rounded-lg shadow-sm w-full">
-                            <p class="break-words">${newCaption}</p>
-                            <button onclick="copyToClipboard(this)" class="mt-2 text-sm px-3 py-1 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors">コピー</button>
+                        <span class="... mr-2 sm:mr-3 ...">AI</span>
+                        <div class="... w-full">
+                            <p class="text-sm sm:text-base break-words">${escapeHtml(newCaption)}</p>
+                            <button onclick="copyToClipboard(this)" class="button mt-2 ...">コピー</button>
                         </div>
                     `;
                     chatHistory.appendChild(aiMessageDiv);
                     chatHistory.scrollTop = chatHistory.scrollHeight;
 
-                    // 将来の編集のために、現在のキャプションを更新
-                    if (currentCaptionElement) {
-                        currentCaptionElement.textContent = `"${newCaption}"`;
-                    }
-                } else {
-                    throw new Error('APIから有効な応答がありませんでした。');
-                }
+                    if (currentCaptionElement) { currentCaptionElement.textContent = `"${escapeHtml(newCaption)}"`; }
+                } else { throw new Error('APIから有効な応答がありませんでした。'); }
             } catch (error) {
                 console.error('Error in chat:', error);
-                document.getElementById('loadingIndicator').remove();
-                // エラーメッセージをチャット履歴に追加
+                loadingDiv.remove();
+                let errorMessage;
+                 if (error.message && error.message.includes('403')) {
+                        errorMessage = `<div class="text-left">...</div>`;
+                    } else { errorMessage = `<p class="text-red-500">キャプションの再生成中にエラーが発生しました。</p>`; }
                 const errorMessageDiv = document.createElement('div');
                 errorMessageDiv.className = "flex items-start mb-4";
-                errorMessageDiv.innerHTML = `
-                    <span class="flex-shrink-0 inline-block p-2 rounded-full bg-[#0E4D92] text-white font-bold mr-2 sm:mr-3">AI</span>
-                    <div class="p-2 sm:p-3 bg-white rounded-lg shadow-sm w-full">
-                        <p class="text-red-500">キャプションの再生成中にエラーが発生しました。</p>
-                    </div>
-                `;
+                errorMessageDiv.innerHTML = `<span class="flex-shrink-0 ...">AI</span><div class="p-2 ...">${errorMessage}</div>`;
                 chatHistory.appendChild(errorMessageDiv);
+                chatHistory.scrollTop = chatHistory.scrollHeight;
+            }
+        }
+
+        // --- ★★★ SNS投稿機能 ★★★ ---
+        async function generateSocialMediaPost(index, caption) {
+            const extraContentDiv = document.getElementById(`extra-content-${index}`);
+            extraContentDiv.innerHTML = '<div class="p-4 bg-gray-50 rounded-lg"><div class="flex flex-col items-center space-y-2"><div class="dot-pulse"></div><p class="text-sm text-gray-500">AIがSNS投稿を作成しています...</p></div></div>';
+
+            try {
+                const prompt = `あなたはプロのSNSマーケターです。以下の作品キャプションを元に、見た人が「いいね！」を押したくなるような、好感度の高いInstagramの投稿文を、簡潔に作成してください。作者（表具師）の作品への想いやこだわりが、親しみやすく、かつ魅力的に伝わるような文章をお願いします。最後に、展覧会の情報（第70回記念表美展、会場：みやこめっせ）と、効果的なハッシュタグ（#第70回記念表美展 #温故創新 #京都表具協同組合 #表美展 #京都 #表具 #伝統工芸 #アートなど）を必ず含めてください。\n\nキャプション:\n「${caption}」`;
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${API_KEY}`;
+                const payload = {
+                    contents: [{ parts: [{ text: prompt }] }],
+                     generationConfig: {
+                        responseMimeType: "application/json",
+                        responseSchema: {
+                            type: "OBJECT",
+                            properties: { "post": { "type": "STRING" } },
+                            "propertyOrdering": ["post"]
+                        }
+                    }
+                };
+
+                const result = await fetchWithRetry(apiUrl, payload);
+                 if (result.candidates && result.candidates[0].content.parts[0].text) {
+                    const post = JSON.parse(result.candidates[0].content.parts[0].text).post;
+                    let postHtml = `
+                        <div class="p-4 bg-gray-50 rounded-lg extra-content-card">
+                            <div class="flex justify-between items-center mb-2 flex-wrap gap-2">
+                                <h4 class="font-bold text-md text-gray-800">SNS投稿案</h4>
+                                <div class="flex items-center gap-2">
+                                     <button onclick="copyToClipboard(this)" class="button text-sm px-3 py-1 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300">コピー</button>
+                                     <button onclick="startSocialChat(${index}, \`${escapeHtml(post)}\`)" class="button text-sm px-3 py-1 bg-[#0E4D92] text-white rounded-md hover:bg-[#1263B7]">AIとチャット</button>
+                                     <button onclick="clearExtraContent(${index})" class="text-sm text-gray-500 hover:text-gray-800">閉じる</button>
+                                </div>
+                            </div>
+                            <p class="sns-post">${escapeHtml(post)}</p>
+                        </div>`;
+                    extraContentDiv.innerHTML = postHtml;
+                } else { throw new Error('APIから有効な応答がありませんでした。'); }
+            } catch (error) {
+                console.error('Error generating social media post:', error);
+                extraContentDiv.innerHTML = `<p class="text-red-500 text-sm">SNS投稿の生成中にエラーが発生しました。</p>`;
+            }
+        }
+        
+        async function startSocialChat(captionIndex, initialPost) {
+            const resultDiv = document.getElementById('imageAnalysisResult');
+            const chatHtml = `
+                <div id="chatInterface" class="space-y-4">
+                    <button onclick="resetApp()" class="button text-sm py-1 px-3 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors mb-4">← 最初の画面に戻る</button>
+                    <div id="chatHistory" class="h-64 sm:h-80 overflow-y-auto p-2 sm:p-4 bg-gray-50 rounded-md border border-gray-200">
+                        <div class="flex items-start mb-4">
+                            <span class="flex-shrink-0 inline-flex items-center justify-center h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-[#0E4D92] text-white font-bold mr-2 sm:mr-3 text-sm">AI</span>
+                            <div class="p-2 sm:p-3 bg-white rounded-lg shadow-sm w-full">
+                                <p class="text-sm sm:text-base">このSNS投稿を、どのように編集しましょうか？</p>
+                                <p class="mt-2 text-xs sm:text-sm text-gray-500 sns-post break-words">${initialPost}</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex">
+                        <input type="text" id="chatInput" placeholder="例：もっと親しみやすい感じに" class="text-sm sm:text-base flex-grow p-2 rounded-l-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#0E4D92] transition-all">
+                        <button onclick="sendSocialChatMessage()" class="button py-2 px-4 sm:px-6 bg-[#0E4D92] text-white rounded-r-md hover:bg-[#1263B7] text-sm sm:text-base">送信</button>
+                    </div>
+                </div>
+            `;
+            resultDiv.innerHTML = chatHtml;
+            document.getElementById('chatInput').focus();
+        }
+
+        async function sendSocialChatMessage() {
+            const chatInput = document.getElementById('chatInput');
+            const userMessage = chatInput.value;
+            const chatHistory = document.getElementById('chatHistory');
+
+            if (!userMessage.trim()) return;
+
+            const userMessageDiv = document.createElement('div');
+            userMessageDiv.className = "flex items-start justify-end mb-4";
+            userMessageDiv.innerHTML = `
+                <div class="p-2 sm:p-3 bg-[#EBF5FF] rounded-lg shadow-sm max-w-[80%]">
+                    <p class="text-sm sm:text-base break-words">${escapeHtml(userMessage)}</p>
+                </div>
+                <span class="flex-shrink-0 inline-flex items-center justify-center h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-gray-400 text-white font-bold ml-2 sm:ml-3 text-sm">あなた</span>
+            `;
+            chatHistory.appendChild(userMessageDiv);
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+            chatInput.value = "";
+            
+            const loadingDiv = document.createElement('div');
+            loadingDiv.id = "loadingIndicator";
+            loadingDiv.className = "flex items-start mb-4";
+            loadingDiv.innerHTML = `<span class="flex-shrink-0 ...">AI</span><div class="..."><div class="dot-pulse"></div></div>`;
+            chatHistory.appendChild(loadingDiv);
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+
+            const postElements = chatHistory.querySelectorAll('.sns-post');
+            const currentPost = postElements.length > 0 ? postElements[postElements.length - 1].textContent.trim() : "";
+
+            try {
+                const prompt = `あなたはプロのSNSマーケターです。以下のInstagram投稿文を、ユーザーの指示に沿って、より好感度が高く、簡潔になるように再生成してください。作者（表具師）の作品への想いが親しみやすく伝わるようにし、展覧会の情報と指定されたハッシュタグ（#第70回記念表美展 #温故創新 #京都表具協同組合など）は必ず維持してください。\n\n現在の投稿文:\n「${currentPost}」\n\nユーザーの指示:\n「${userMessage}」`;
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${API_KEY}`;
+                const payload = {
+                    contents: [{ parts: [{ text: prompt }] }],
+                    generationConfig: {
+                        responseMimeType: "application/json",
+                        responseSchema: { type: "OBJECT", properties: { "post": { "type": "STRING" } }, "propertyOrdering": ["post"] }
+                    }
+                };
+                
+                const result = await fetchWithRetry(apiUrl, payload);
+                loadingDiv.remove();
+                
+                if (result.candidates && result.candidates[0].content.parts[0].text) {
+                    const newPost = JSON.parse(result.candidates[0].content.parts[0].text).post;
+                    const aiMessageDiv = document.createElement('div');
+                    aiMessageDiv.className = "flex items-start mb-4";
+                    aiMessageDiv.innerHTML = `
+                        <span class="... mr-2 sm:mr-3 ...">AI</span>
+                        <div class="p-2 sm:p-3 bg-white rounded-lg shadow-sm w-full">
+                            <p class="text-sm sm:text-base break-words sns-post">${escapeHtml(newPost)}</p>
+                            <button onclick="copyToClipboard(this)" class="button mt-2 text-xs sm:text-sm px-3 py-1 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300">コピー</button>
+                        </div>
+                    `;
+                    chatHistory.appendChild(aiMessageDiv);
+                    chatHistory.scrollTop = chatHistory.scrollHeight;
+                } else { throw new Error('APIから有効な応答がありませんでした。'); }
+            } catch (error) {
+                console.error('Error in social chat:', error);
+                loadingDiv.remove();
+                // ... (error handling)
             }
         }
         
         // ---補助的な関数---
-
-        // アプリケーションの状態を初期状態に戻す関数
         function resetApp() {
             const resultDiv = document.getElementById('imageAnalysisResult');
             resultDiv.innerHTML = '<p class="text-gray-400">ここにAIによるキャプションが表示されます。</p>';
@@ -489,7 +553,6 @@ ${currentKeywords ? `\n以下のキーワードも考慮してください: ${cu
             currentMimeType = null;
         }
 
-        // API呼び出しでエラーが起きた場合に、数回再試行（リトライ）する関数
         async function fetchWithRetry(url, payload, retries = 3) {
             for (let i = 0; i <= retries; i++) {
                 try {
@@ -498,14 +561,8 @@ ${currentKeywords ? `\n以下のキーワードも考慮してください: ${cu
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(payload)
                     });
-
-                    if (!response.ok) {
-                        throw new Error(`API returned non-OK status: ${response.status} ${response.statusText}`);
-                    }
-                    
-                    const json = await response.json();
-                    return json;
-
+                    if (!response.ok) { throw new Error(`API returned non-OK status: ${response.status} ${response.statusText}`); }
+                    return await response.json();
                 } catch (error) {
                     console.error(`Attempt ${i + 1} failed:`, error);
                     if (i < retries && (error instanceof SyntaxError || error instanceof TypeError)) {
@@ -517,10 +574,9 @@ ${currentKeywords ? `\n以下のキーワードも考慮してください: ${cu
             }
         }
         
-        // テキストをクリップボードにコピーする関数
         function copyToClipboard(buttonElement) {
-            const container = buttonElement.closest('div');
-            const textElement = container.querySelector('p:not([class*="text-gray-500"])');
+            const container = buttonElement.closest('.extra-content-card') || buttonElement.closest('.card') || buttonElement.closest('div');
+            const textElement = container.querySelector('.sns-post') || container.querySelector('.caption-text') || container.querySelector('p:not([class*="text-gray-500"])');
             
             if (textElement) {
                 const textToCopy = textElement.textContent;
@@ -529,50 +585,26 @@ ${currentKeywords ? `\n以下のキーワードも考慮してください: ${cu
                 document.body.appendChild(tempTextArea);
                 tempTextArea.select();
                 try {
-                    const successful = document.execCommand('copy');
-                    const confirmationSpan = document.createElement('span');
-                    confirmationSpan.className = 'text-xs text-green-600 ml-2';
-                    confirmationSpan.textContent = successful ? 'コピーしました！' : 'コピーに失敗しました';
-                    buttonElement.after(confirmationSpan);
+                    document.execCommand('copy');
+                    const originalText = buttonElement.textContent;
+                    buttonElement.textContent = 'コピーしました！';
                     setTimeout(() => {
-                        confirmationSpan.remove();
+                       buttonElement.textContent = originalText;
                     }, 2000);
                 } catch (err) {
-                    console.error('Failed to copy text using execCommand: ', err);
+                    console.error('Failed to copy text: ', err);
                 } finally {
                     document.body.removeChild(tempTextArea);
                 }
-
             } else {
-                 const cardContainer = buttonElement.closest('.card');
-                 const cardTextElement = cardContainer.querySelector('.caption-text');
-                 if (cardTextElement) {
-                    const textToCopy = cardTextElement.textContent;
-                     const tempTextArea = document.createElement('textarea');
-                    tempTextArea.value = textToCopy;
-                    document.body.appendChild(tempTextArea);
-                    tempTextArea.select();
-                    try {
-                        const successful = document.execCommand('copy');
-                        const confirmationSpan = document.createElement('span');
-                        confirmationSpan.className = 'text-xs text-green-600 ml-2';
-                        confirmationSpan.textContent = successful ? 'コピーしました！' : 'コピーに失敗しました';
-                        buttonElement.after(confirmationSpan);
-                        setTimeout(() => {
-                            confirmationSpan.remove();
-                        }, 2000);
-                    } catch (err) {
-                        console.error('Failed to copy text using execCommand: ', err);
-                    } finally {
-                        document.body.removeChild(tempTextArea);
-                    }
-                 } else {
-                    console.error('Could not find text element to copy.');
-                 }
+                 console.error('Could not find text element to copy.');
             }
         }
         
-        // HTML特殊文字を安全な文字列に変換する関数
+        function clearExtraContent(index) {
+            document.getElementById(`extra-content-${index}`).innerHTML = '';
+        }
+
         function escapeHtml(unsafe) {
             return unsafe
                 .replace(/&/g, "&amp;")
