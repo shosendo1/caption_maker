@@ -1,13 +1,587 @@
-    <!DOCTYPE html>
-    <html lang="ja">
-    <head>
-        <meta charset="UTF-8">
-        <title>テストページ</title>
-    </head>
-    <body>
-        <h1>こんにちは、世界！</h1>
-        <p>このページが正しく表示されれば、成功です。</p>
-    </body>
-    </html>
-    
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AIキャプションメーカー</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;700&family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans JP', sans-serif;
+            background-color: #FDFDFD;
+            color: #4A4A4A;
+        }
+        .button {
+            transition: background-color 0.3s, transform 0.2s, box-shadow 0.3s;
+        }
+        .button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .card {
+            background-color: #FFFFFF;
+            border: 1px solid #E0D9C8;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+        #imageAnalysisResult, #uploadedImage {
+            animation: fadeIn 0.8s ease-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .dot-pulse {
+            position: relative;
+            left: -9999px;
+            width: 10px;
+            height: 10px;
+            border-radius: 5px;
+            background-color: #0E4D92;
+            color: #0E4D92;
+            box-shadow: 9999px 0 0 -5px;
+            animation: dot-pulse 1.5s infinite linear;
+            animation-delay: .25s;
+        }
+        .dot-pulse::before, .dot-pulse::after {
+            content: '';
+            display: inline-block;
+            position: absolute;
+            top: 0;
+            width: 10px;
+            height: 10px;
+            border-radius: 5px;
+            background-color: #0E4D92;
+            color: #0E4D92;
+        }
+        .dot-pulse::before {
+            box-shadow: 9984px 0 0 -5px;
+            animation: dot-pulse-before 1.5s infinite linear;
+            animation-delay: 0s;
+        }
+        @keyframes dot-pulse-before {
+            0% { box-shadow: 9984px 0 0 -5px; }
+            30% { box-shadow: 9984px 0 0 2px; }
+            60%, 100% { box-shadow: 9984px 0 0 -5px; }
+        }
+        .dot-pulse::after {
+            box-shadow: 10014px 0 0 -5px;
+            animation: dot-pulse-after 1.5s infinite linear;
+            animation-delay: .5s;
+        }
+        @keyframes dot-pulse-after {
+            0% { box-shadow: 10014px 0 0 2px; }
+            30% { box-shadow: 10014px 0 0 -5px; }
+            60%, 100% { box-shadow: 10014px 0 0 -5px; }
+        }
+        @keyframes dot-pulse {
+            0% { box-shadow: 9999px 0 0 -5px; }
+            30% { box-shadow: 9999px 0 0 2px; }
+            60%, 100% { box-shadow: 9999px 0 0 -5px; }
+        }
+        .caption-text {
+            font-family: 'Noto Serif JP', serif;
+        }
+    </style>
+</head>
+<body class="antialiased flex flex-col items-center min-h-screen p-2 sm:p-4">
+    <main class="w-full max-w-4xl text-center bg-gray-100 p-4 sm:p-8 rounded-lg shadow-inner card">
+        <h2 class="text-3xl md:text-4xl font-bold mb-6 text-[#4A4A4A]">✨ AIキャプションメーカー ✨</h2>
+        <p class="text-base sm:text-lg mb-8 text-[#6B6B6B]">表美展に出展するあなたの作品をアップロードして、AIに「温故創新」のテーマに沿ったキャプションを生成してもらいましょう。</p>
+
+        <!-- Image Preview Section -->
+        <div id="imagePreviewContainer" class="mb-8 hidden">
+            <img id="uploadedImage" class="max-h-[250px] sm:max-h-[400px] w-auto h-auto rounded-lg shadow-md mx-auto object-contain">
+        </div>
+
+        <div class="space-y-6">
+            <div class="text-left p-4 sm:p-6 rounded-lg card">
+                <p class="text-sm mb-4 font-semibold">ステップ1: 作品の写真をアップロード</p>
+                <div class="flex flex-col items-center justify-center">
+                    <label for="imageInput" class="button inline-block py-3 px-6 rounded-md bg-[#0E4D92] text-white cursor-pointer hover:bg-[#1263B7]">
+                        <span id="fileName">ファイルを選択</span>
+                    </label>
+                    <input type="file" id="imageInput" accept="image/*" onchange="displayFileName(event)" class="hidden">
+                </div>
+            </div>
+            <div class="text-left p-4 sm:p-6 rounded-lg card">
+                <p class="text-sm mb-4 font-semibold">ステップ2: 作品に関するキーワードを入力</p>
+                <textarea id="keywordsInput" class="w-full h-24 p-2 rounded-md border border-gray-300 resize-none focus:outline-none focus:ring-2 focus:ring-[#0E4D92] transition-all" placeholder="例：伝統的な技法、未来的なデザイン、静寂、光と影"></textarea>
+            </div>
+            <div class="text-left p-4 sm:p-6 rounded-lg card">
+                <p class="text-sm mb-4 font-semibold">ステップ3: キャプションを生成</p>
+                <button onclick="analyzeImage()" class="button w-full py-3 px-6 bg-[#0E4D92] text-white rounded-md hover:bg-[#1263B7]">
+                    キャプションを生成する
+                </button>
+            </div>
+        </div>
+        <div id="imageAnalysisResult" class="mt-8 text-left p-4 sm:p-6 rounded-lg card min-h-[100px] flex items-center justify-center">
+            <p class="text-gray-400">ここにAIによるキャプションが表示されます。</p>
+        </div>
+    </main>
+
+    <footer class="mt-8 text-center text-xs text-gray-500">
+        <p>Created by TANAKA Hiroshi</p>
+    </footer>
+
+    <script>
+        // ---全体で使う変数の設定---
+
+        // Google AI Studioで取得したAPIキーを設定します。
+        // 重要：このキーはサンプルです。ご自身のキーに置き換えてください。
+        const API_KEY = "AIzaSyBmuD2c_M6Kg_GRk7TJpqXGNzsZGH3FeME";
+        
+        // 現在の画像を保存しておくための変数
+        let currentImageBase64 = null;
+        // 現在のキーワードを保存しておくための変数
+        let currentKeywords = "";
+        // 現在の画像のファイル形式（例: image/jpeg）を保存しておくための変数
+        let currentMimeType = null;
+
+        // ---AIに渡す参考資料---
+
+        // 表美展の開催要項を定数として定義します。AIはこの情報を元にキャプションを考えます。
+        const EXHIBITION_DOCUMENT = `第70回記念表美展 開催要項
+「温故創新-Innovation from the past」
+開催概要
+主催 : 京都表具協同組合
+後援 : 京都府、京都市、京都府中小企業団体中央会、京都商工会議所、近畿経済産業局、一般財団法人伝統的工芸品産業振興協会、京都新聞、KBS京都
+協賛 : 京都府職業能力開発協会、全国表具経師内装組合連合会、西日本表具内装協会、京表具協同組合連合会、京都伝統工芸協議会
+会場 : 京都市勧業館 みやこめっせ地階A展示室 (〒606-8343 京都市左京区岡崎成勝寺町90-1)
+会期 : 令和7年10月18日(土)～19日(日) 10:00～17:00
+搬入 : 令和7年10月17日(金)
+テーマ : 「温故創新-Innovation from the past」
+開催目的
+表具および内装技術のさらなる向上を目指し、デジタル事業との連携を通じて新たな市場領域を拡大します。本展は、未来を拓く事業変革の先駆けとなることを目標とします。
+特別企画
+70回記念展示「黄金の茶室」 : 第60回展でご好評いただいた「黄金の茶室」を特別展示いたします。中断しておりましたお茶の提供も、「黄金の茶室」に限り、限定数にて有料で再開する予定です。
+アートパネルブース : 昨年より開始し、多大な評価をいただいているブースです。今年のテーマに沿った作品を募集し、出品作品は来場者によるオンライン投票で評価、今後の作品ブラッシュアップに繋げます。高評価作品には商品券等を贈呈いたします。
+プロモーション戦略
+オンライン : 例年通り、組合公式WEBサイト、SNS、ECサイトを駆使し、早期からのオンライン集客を強化します。
+オフライン : 京都市営地下鉄改札付近でのポスター掲示により、効果的な集客を図ります。
+出展要項
+自由出品 : 「自由出品（褒章審査対象外）」を受け付け、多くの組合員の皆様からのご応募をお待ちしております。
+作品説明 : 出品作品には、例年通りキャプション（説明文）を添えて展示いたします。
+【出品詳細】
+出品審査 : 本展にふさわしい作品であるかを厳正に審査いたします。自由出品（褒章審査対象外）の場合も、適切な作品であることを確認いたしますが、出品物に対する最終責任は出品者ご本人様とさせていただきます。
+陳列開始 : 7年10月17日(金)午前10時30分を予定しております。
+褒章 : 経済産業省大臣官房商務・サービス審議官賞、近畿経済産業局長賞、知事賞、市長賞、京都府中小企業団体中央会会長賞、京都商工会議所会頭賞、京都新聞賞を予定しております。
+表彰式 : 令和8年1月の「京都表具協同組合新年会」にて執り行う予定です。
+出品点数 : お一人様何点でも出展可能です。長尺・幅広の表装および大型アートパネルも出品可能ですが、必ず事前にご相談ください。
+申込締切 : 7年10月7日(火)`;
+
+        // ---画面の操作に関する関数---
+
+        // ファイルが選択された時に、ファイル名を表示し、画像のプレビューを見せる関数
+        function displayFileName(event) {
+            const fileInput = event.target; // ファイル選択の要素を取得
+            const fileNameSpan = document.getElementById('fileName'); // ファイル名を表示する場所を取得
+            const uploadedImage = document.getElementById('uploadedImage'); // 画像プレビューの場所を取得
+            const imagePreviewContainer = document.getElementById('imagePreviewContainer'); // 画像プレビュー全体を囲む要素を取得
+            const file = fileInput.files[0]; // 選択されたファイルを取得
+
+            if (file) {
+                // ファイルが選択されている場合
+                fileNameSpan.textContent = file.name; // ファイル名を表示
+                uploadedImage.src = URL.createObjectURL(file); // 画像のプレビューを表示
+                imagePreviewContainer.classList.remove('hidden'); // 画像プレビューのコンテナを表示状態にする
+            } else {
+                // ファイルが選択されていない場合
+                fileNameSpan.textContent = 'ファイルを選択'; // 表示を元に戻す
+                imagePreviewContainer.classList.add('hidden'); // 画像プレビューのコンテナを隠す
+            }
+        }
+
+        // ---AIとの通信に関するメインの関数---
+
+        // 「キャプションを生成する」ボタンが押された時に動く関数
+        async function analyzeImage() {
+            // 必要な情報を画面から取得
+            const fileInput = document.getElementById('imageInput');
+            const keywordsInput = document.getElementById('keywordsInput');
+            const file = fileInput.files[0];
+            const keywords = keywordsInput.value;
+            const resultDiv = document.getElementById('imageAnalysisResult');
+            const generateButton = document.querySelector('button');
+
+            // 画像が選択されていなければ、エラーメッセージを表示して処理を中断
+            if (!file) {
+                resultDiv.innerHTML = '<p class="text-red-500">画像をアップロードしてください。</p>';
+                return;
+            }
+
+            // 処理中の表示に切り替え
+            resultDiv.innerHTML = '<div class="flex flex-col items-center space-y-2"><div class="dot-pulse"></div><p class="text-sm text-gray-500">AIが作品を分析中です。完了までしばらくお待ちください。</p></div>';
+            generateButton.disabled = true; // ボタンを一時的に押せなくする
+
+            // ファイルを読み込む準備
+            const reader = new FileReader();
+            reader.onloadend = async () => {
+                // ファイルの読み込みが終わったら、以下の処理を実行
+                currentImageBase64 = reader.result.split(',')[1]; // 画像データをBase64形式に変換
+                currentKeywords = keywords; // 入力されたキーワードを保存
+                currentMimeType = file.type; // ファイル形式を保存
+                
+                // AIへの指示（プロンプト）を作成
+                const prompt = `以下のドキュメントを参考に、この画像に写っている第70回記念表美展に出展する私の作品について、作者である表具師本人の目線で、3つの異なるキャプション案を生成してください。
+
+ドキュメント:
+"${EXHIBITION_DOCUMENT}"
+
+私の作品について、一人の表具師として、長年培ってきた技術や素材へのこだわり、そして「伝統的なものから新しい価値を生み出す」というテーマへの挑戦が伝わるように、キャプションを作成してください。作品の画像から読み取れる特徴（色、形、質感、構図、雰囲気など）に具体的に触れつつ、表具師ならではの専門的な視点や、作品に込めた精神性を語ってください。
+1つ目の案は、作品の**技術や素材の面白さ**、**形や色の美しさ**に焦点を当て、少し文学的で深みのある表現を使って、私がこの作品に込めた思いを説明してください。
+2つ目の案は、作品が持つ**物語性**や**感動的な側面**、**見る人に語りかけるメッセージ**に焦点を当て、共感を呼ぶような表現で、私がこの作品を通して伝えたいことを説明してください。
+3つ目の案は、作品の**見た目のインパクト**と、そこから生まれる**新しい表現の可能性**に焦点を当て、展示の場で目を引くような力強い表現で、私の表現への挑戦を説明してください。
+各キャプションは独立した文章として完結させ、見出しや箇条書きは含めないでください。
+「温故創新」という言葉を直接使わないでください。
+
+${keywords ? `\n以下のキーワードをキャプションに反映させてください: ${keywords}` : ''}`;
+                    
+                // Google AIのAPIのエンドポイントURL
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${API_KEY}`;
+                
+                // APIに送信するデータ（ペイロード）を作成
+                const payload = {
+                    contents: [{
+                        parts: [
+                            { text: prompt }, // AIへの指示
+                            { inlineData: { mimeType: currentMimeType, data: currentImageBase64 } } // 画像データ
+                        ]
+                    }],
+                    generationConfig: {
+                        responseMimeType: "application/json", // 応答をJSON形式で要求
+                        responseSchema: { // 期待するJSONの構造を定義
+                            type: "ARRAY",
+                            items: {
+                                type: "OBJECT",
+                                properties: {
+                                    "caption": { "type": "STRING" }
+                                },
+                                "propertyOrdering": ["caption"]
+                            }
+                        }
+                    }
+                };
+
+                try {
+                    // APIを呼び出して結果を取得（エラーの場合はリトライする関数を使用）
+                    const result = await fetchWithRetry(apiUrl, payload);
+                    
+                    // 結果が正しく返ってきた場合の処理
+                    if (result.candidates && result.candidates[0].content.parts[0].text) {
+                        const rawJsonText = result.candidates[0].content.parts[0].text;
+                        let captions;
+                        // AIの応答からJSONデータを抽出
+                        try {
+                            captions = JSON.parse(rawJsonText);
+                        } catch (directParseError) {
+                            const jsonMatch = rawJsonText.match(/\[\s*\{[\s\S]*\}\s*\]/);
+                            if (jsonMatch && jsonMatch[0]) {
+                                try {
+                                    captions = JSON.parse(jsonMatch[0]);
+                                } catch (regexParseError) {
+                                    throw new Error('抽出したJSONの解析に失敗しました: ' + regexParseError.message);
+                                }
+                            } else {
+                                throw new Error('API応答に有効なJSONブロックが見つかりませんでした。');
+                            }
+                        }
+                        
+                        // データの構造が期待通りかチェック
+                        if (!Array.isArray(captions) || captions.length < 3 || !captions[0].caption) {
+                            throw new Error('無効なJSON構造です。少なくとも3つのオブジェクトを含む配列を期待しました。');
+                        }
+
+                        // 結果を画面に表示するためのHTMLを作成
+                        let resultHtml = `
+                            <div class="space-y-6">
+                                ${captions.map((item, index) => `
+                                    <div class="p-4 rounded-md card">
+                                        <div class="flex items-center justify-between">
+                                            <h3 class="font-bold text-lg mb-2 text-[#4A4A4A]">キャプション案${index + 1}</h3>
+                                            <div class="flex space-x-2">
+                                                <button onclick="copyToClipboard(this)" class="text-sm px-3 py-1 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors">コピー</button>
+                                                <button onclick="startChat(${index}, \`${escapeHtml(item.caption)}\`)" class="text-sm px-3 py-1 bg-[#0E4D92] text-white rounded-md hover:bg-[#1263B7]">AIとチャットする</button>
+                                            </div>
+                                        </div>
+                                        <p class="mt-2 caption-text" data-index="${index}">${item.caption}</p>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        `;
+                        // 作成したHTMLを画面に表示
+                        resultDiv.innerHTML = resultHtml;
+
+                    } else {
+                        throw new Error('APIから有効な応答がありませんでした。');
+                    }
+                } catch (error) {
+                    // エラーが発生した場合の処理
+                    console.error('Error analyzing image:', error);
+                    resultDiv.innerHTML = `<p class="text-red-500">キャプションの生成中にエラーが発生しました。詳細: ${error.message}</p>`;
+                } finally {
+                    // 処理が成功しても失敗しても、最後にボタンを押せるように戻す
+                    generateButton.disabled = false;
+                }
+            };
+            reader.readAsDataURL(file);
+        }
+        
+        // ---AIとのチャット機能に関する関数---
+
+        // 特定のキャプションを編集するためのチャットUIを開始する関数
+        async function startChat(captionIndex, initialCaption) {
+            const resultDiv = document.getElementById('imageAnalysisResult');
+            const chatHtml = `
+                <div id="chatInterface" class="space-y-4">
+                    <button onclick="resetApp()" class="text-sm py-1 px-3 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors mb-4">← 戻る</button>
+                    <div id="chatHistory" class="h-48 sm:h-64 overflow-y-auto p-2 sm:p-4 bg-gray-50 rounded-md border border-gray-200">
+                        <div class="flex items-start mb-4">
+                            <span class="flex-shrink-0 inline-block p-2 rounded-full bg-[#0E4D92] text-white font-bold mr-2 sm:mr-3">AI</span>
+                            <div class="p-2 sm:p-3 bg-white rounded-lg shadow-sm w-full">
+                                <p>このキャプションを、どのように編集しましょうか？</p>
+                                <p class="mt-2 text-sm text-gray-500 caption-text break-words">"${initialCaption}"</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex">
+                        <input type="text" id="chatInput" placeholder="例：もっと短くしてください" class="flex-grow p-2 rounded-l-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#0E4D92] transition-all">
+                        <button onclick="sendChatMessage()" class="py-2 px-6 bg-[#0E4D92] text-white rounded-r-md hover:bg-[#1263B7]">送信</button>
+                    </div>
+                </div>
+            `;
+            resultDiv.innerHTML = chatHtml;
+            document.getElementById('chatInput').focus();
+        }
+
+        // チャットメッセージを送信し、キャプションを再生成する関数
+        async function sendChatMessage() {
+            const chatInput = document.getElementById('chatInput');
+            const userMessage = chatInput.value;
+            const chatHistory = document.getElementById('chatHistory');
+            
+            if (!userMessage.trim()) return;
+
+            // ユーザーメッセージをチャット履歴に追加
+            const userMessageDiv = document.createElement('div');
+            userMessageDiv.className = "flex items-start justify-end mb-4";
+            userMessageDiv.innerHTML = `
+                <div class="p-2 sm:p-3 bg-[#EBF5FF] rounded-lg shadow-sm max-w-[80%]">
+                    <p class="break-words">${escapeHtml(userMessage)}</p>
+                </div>
+                <span class="flex-shrink-0 inline-block p-2 rounded-full bg-gray-400 text-white font-bold ml-2 sm:ml-3">あなた</span>
+            `;
+            chatHistory.appendChild(userMessageDiv);
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+            chatInput.value = "";
+            
+            // ローディング表示をチャット履歴に追加
+            const loadingDiv = document.createElement('div');
+            loadingDiv.id = "loadingIndicator";
+            loadingDiv.className = "flex items-start mb-4";
+            loadingDiv.innerHTML = `
+                <span class="flex-shrink-0 inline-block p-2 rounded-full bg-[#0E4D92] text-white font-bold mr-2 sm:mr-3">AI</span>
+                <div class="p-2 sm:p-3 bg-white rounded-lg shadow-sm">
+                    <div class="dot-pulse"></div>
+                </div>
+            `;
+            chatHistory.appendChild(loadingDiv);
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+            
+            const currentCaptionElement = document.getElementById('chatHistory').querySelector('p.text-sm');
+            const currentCaption = currentCaptionElement ? currentCaptionElement.textContent.trim().replace(/^"/, '').replace(/"$/, '') : "";
+            
+            try {
+                // AIへの指示（プロンプト）を作成
+                const prompt = `以下のキャプションを、ユーザーの指示に沿って、作者である表具師の視点をより強く反映させて再生成してください。
+                
+現在のキャプション: "${currentCaption}"
+ユーザーの指示: "${userMessage}"
+${currentKeywords ? `\n以下のキーワードも考慮してください: ${currentKeywords}` : ''}`;
+                
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${API_KEY}`;
+                
+                // APIに送信するデータ（ペイロード）を作成
+                const payload = {
+                    contents: [{
+                        parts: [
+                            { text: prompt },
+                            { inlineData: { mimeType: currentMimeType, data: currentImageBase64 } }
+                        ]
+                    }],
+                    generationConfig: {
+                        responseMimeType: "application/json",
+                        responseSchema: {
+                            type: "OBJECT",
+                            properties: {
+                                "caption": { "type": "STRING" }
+                            },
+                            "propertyOrdering": ["caption"]
+                        }
+                    }
+                };
+                
+                const result = await fetchWithRetry(apiUrl, payload);
+                
+                document.getElementById('loadingIndicator').remove();
+                
+                if (result.candidates && result.candidates[0].content.parts[0].text) {
+                    const rawJsonText = result.candidates[0].content.parts[0].text;
+                    let newCaption;
+                    try {
+                        const parsed = JSON.parse(rawJsonText);
+                        newCaption = parsed.caption;
+                    } catch (e) {
+                        const captionMatch = rawJsonText.match(/"caption"\s*:\s*"(.*?)"/s);
+                        newCaption = captionMatch ? captionMatch[1] : rawJsonText;
+                    }
+                    
+                    // AIの返信をチャット履歴に追加
+                    const aiMessageDiv = document.createElement('div');
+                    aiMessageDiv.className = "flex items-start mb-4";
+                    aiMessageDiv.innerHTML = `
+                        <span class="flex-shrink-0 inline-block p-2 rounded-full bg-[#0E4D92] text-white font-bold mr-2 sm:mr-3">AI</span>
+                        <div class="p-2 sm:p-3 bg-white rounded-lg shadow-sm w-full">
+                            <p class="break-words">${newCaption}</p>
+                            <button onclick="copyToClipboard(this)" class="mt-2 text-sm px-3 py-1 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors">コピー</button>
+                        </div>
+                    `;
+                    chatHistory.appendChild(aiMessageDiv);
+                    chatHistory.scrollTop = chatHistory.scrollHeight;
+
+                    // 将来の編集のために、現在のキャプションを更新
+                    if (currentCaptionElement) {
+                        currentCaptionElement.textContent = `"${newCaption}"`;
+                    }
+                } else {
+                    throw new Error('APIから有効な応答がありませんでした。');
+                }
+            } catch (error) {
+                console.error('Error in chat:', error);
+                document.getElementById('loadingIndicator').remove();
+                // エラーメッセージをチャット履歴に追加
+                const errorMessageDiv = document.createElement('div');
+                errorMessageDiv.className = "flex items-start mb-4";
+                errorMessageDiv.innerHTML = `
+                    <span class="flex-shrink-0 inline-block p-2 rounded-full bg-[#0E4D92] text-white font-bold mr-2 sm:mr-3">AI</span>
+                    <div class="p-2 sm:p-3 bg-white rounded-lg shadow-sm w-full">
+                        <p class="text-red-500">キャプションの再生成中にエラーが発生しました。</p>
+                    </div>
+                `;
+                chatHistory.appendChild(errorMessageDiv);
+            }
+        }
+        
+        // ---補助的な関数---
+
+        // アプリケーションの状態を初期状態に戻す関数
+        function resetApp() {
+            const resultDiv = document.getElementById('imageAnalysisResult');
+            resultDiv.innerHTML = '<p class="text-gray-400">ここにAIによるキャプションが表示されます。</p>';
+            document.getElementById('imageInput').value = '';
+            document.getElementById('keywordsInput').value = '';
+            document.getElementById('fileName').textContent = 'ファイルを選択';
+            document.getElementById('imagePreviewContainer').classList.add('hidden');
+            currentImageBase64 = null;
+            currentKeywords = "";
+            currentMimeType = null;
+        }
+
+        // API呼び出しでエラーが起きた場合に、数回再試行（リトライ）する関数
+        async function fetchWithRetry(url, payload, retries = 3) {
+            for (let i = 0; i <= retries; i++) {
+                try {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`API returned non-OK status: ${response.status} ${response.statusText}`);
+                    }
+                    
+                    const json = await response.json();
+                    return json;
+
+                } catch (error) {
+                    console.error(`Attempt ${i + 1} failed:`, error);
+                    if (i < retries && (error instanceof SyntaxError || error instanceof TypeError)) {
+                        await new Promise(res => setTimeout(res, 1000 * (i + 1)));
+                        continue;
+                    }
+                    throw error;
+                }
+            }
+        }
+        
+        // テキストをクリップボードにコピーする関数
+        function copyToClipboard(buttonElement) {
+            const container = buttonElement.closest('div');
+            const textElement = container.querySelector('p:not([class*="text-gray-500"])');
+            
+            if (textElement) {
+                const textToCopy = textElement.textContent;
+                const tempTextArea = document.createElement('textarea');
+                tempTextArea.value = textToCopy;
+                document.body.appendChild(tempTextArea);
+                tempTextArea.select();
+                try {
+                    const successful = document.execCommand('copy');
+                    const confirmationSpan = document.createElement('span');
+                    confirmationSpan.className = 'text-xs text-green-600 ml-2';
+                    confirmationSpan.textContent = successful ? 'コピーしました！' : 'コピーに失敗しました';
+                    buttonElement.after(confirmationSpan);
+                    setTimeout(() => {
+                        confirmationSpan.remove();
+                    }, 2000);
+                } catch (err) {
+                    console.error('Failed to copy text using execCommand: ', err);
+                } finally {
+                    document.body.removeChild(tempTextArea);
+                }
+
+            } else {
+                 const cardContainer = buttonElement.closest('.card');
+                 const cardTextElement = cardContainer.querySelector('.caption-text');
+                 if (cardTextElement) {
+                    const textToCopy = cardTextElement.textContent;
+                     const tempTextArea = document.createElement('textarea');
+                    tempTextArea.value = textToCopy;
+                    document.body.appendChild(tempTextArea);
+                    tempTextArea.select();
+                    try {
+                        const successful = document.execCommand('copy');
+                        const confirmationSpan = document.createElement('span');
+                        confirmationSpan.className = 'text-xs text-green-600 ml-2';
+                        confirmationSpan.textContent = successful ? 'コピーしました！' : 'コピーに失敗しました';
+                        buttonElement.after(confirmationSpan);
+                        setTimeout(() => {
+                            confirmationSpan.remove();
+                        }, 2000);
+                    } catch (err) {
+                        console.error('Failed to copy text using execCommand: ', err);
+                    } finally {
+                        document.body.removeChild(tempTextArea);
+                    }
+                 } else {
+                    console.error('Could not find text element to copy.');
+                 }
+            }
+        }
+        
+        // HTML特殊文字を安全な文字列に変換する関数
+        function escapeHtml(unsafe) {
+            return unsafe
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+    </script>
+</body>
+</html>
 
