@@ -144,6 +144,7 @@
         let currentImageBase64 = null;
         let currentKeywords = "";
         let currentMimeType = null;
+        let audioContext = null; // ★★★ スマートフォン対応のための音声コンテキスト
 
         // ---AIに渡す参考資料---
         const EXHIBITION_DOCUMENT = `第70回記念表美展 開催要項
@@ -547,6 +548,25 @@ ${keywords ? `\n以下のキーワードをキャプションに反映させて�
         
         // ★★★ 音声出力機能 (Gemini TTS API版) ★★★
         async function speakText(buttonElement, text, lang) {
+            // スマートフォンとの互換性を高めるため、ユーザーの操作（クリック）をトリガーにAudioContextを初期化
+            if (!audioContext) {
+                try {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                } catch (e) {
+                    console.error("Web Audio API is not supported in this browser");
+                    const errorSpan = document.createElement('span');
+                    errorSpan.className = 'text-xs text-red-500 ml-2';
+                    errorSpan.textContent = '音声再生に非対応です';
+                    buttonElement.after(errorSpan);
+                    setTimeout(() => { errorSpan.remove(); }, 3000);
+                    buttonElement.disabled = true;
+                    return;
+                }
+            }
+            if (audioContext.state === 'suspended') {
+                audioContext.resume();
+            }
+
             const originalButtonText = buttonElement.textContent;
             const downloadBtn = buttonElement.nextElementSibling;
             let textToSpeak = text;
@@ -565,11 +585,9 @@ ${keywords ? `\n以下のキーワードをキャプションに反映させて�
                 if (downloadBtn) downloadBtn.disabled = true;
 
                 const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${API_KEY}`;
-                
                 const prompt = lang.startsWith('ja') 
                     ? `これは美術作品の解説文です。文脈に注意して、特に漢字の読み方（音読み、訓読み）が正確になるように、親しみやすく、抑揚をつけて読んでください: ${textToSpeak}`
                     : `Read this with a friendly and expressive tone: ${textToSpeak}`;
-
                 const payload = {
                     model: "gemini-2.5-flash-preview-tts",
                     contents: [{ parts: [{ text: prompt }] }],
@@ -596,12 +614,21 @@ ${keywords ? `\n以下のキーワードをキャプションに反映させて�
                     const pcmData = base64ToArrayBuffer(audioData);
                     const pcm16 = new Int16Array(pcmData);
                     const wavBlob = pcmToWav(pcm16, sampleRate);
-                    const audioUrl = URL.createObjectURL(wavBlob);
                     
-                    const audio = new Audio(audioUrl);
-                    audio.play();
+                    // Web Audio API を使って再生
+                    const arrayBuffer = await wavBlob.arrayBuffer();
+                    audioContext.decodeAudioData(arrayBuffer, (buffer) => {
+                        const source = audioContext.createBufferSource();
+                        source.buffer = buffer;
+                        source.connect(audioContext.destination);
+                        source.start(0);
+                    }, (error) => {
+                        console.error("音声データのデコードに失敗しました:", error);
+                        throw new Error("音声データのデコードに失敗しました。");
+                    });
 
                     if (downloadBtn) {
+                        const audioUrl = URL.createObjectURL(wavBlob);
                         downloadBtn.dataset.audioUrl = audioUrl;
                         downloadBtn.disabled = false;
                     }
@@ -816,4 +843,5 @@ ${keywords ? `\n以下のキーワードをキャプションに反映させて�
     </script>
 </body>
 </html>
+
 
