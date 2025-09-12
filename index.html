@@ -11,27 +11,32 @@
     <style>
         body {
             font-family: 'Noto Sans JP', sans-serif;
-            background-color: #FDFDFD;
-            color: #4A4A4A;
+            color: #333;
+            background-image: url('https://i.imgur.com/8E3yT47.jpeg');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
         }
         .button {
-            transition: background-color 0.3s, transform 0.2s, box-shadow 0.3s;
+            transition: all 0.3s ease;
         }
         .button:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transform: translateY(-3px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
         }
         .button:disabled {
             cursor: not-allowed;
             opacity: 0.7;
         }
         .card {
-            background-color: #FFFFFF;
-            border: 1px solid #E0D9C8;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            background-color: rgba(255, 255, 255, 0.95);
+            border: 1px solid rgba(224, 217, 200, 0.8);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
         }
-        #imageAnalysisResult, #uploadedImage, .extra-content-card {
-            animation: fadeIn 0.8s ease-out;
+        #imageAnalysisResult, #uploadedImage, .extra-content-card, #modal-content {
+            animation: fadeIn 0.5s ease-out;
         }
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(10px); }
@@ -99,7 +104,7 @@
     </style>
 </head>
 <body class="antialiased flex flex-col items-center min-h-screen p-3 sm:p-4">
-    <main class="w-full max-w-4xl text-center bg-gray-100 p-4 sm:p-8 rounded-lg shadow-inner card">
+    <main class="w-full max-w-4xl text-center p-4 sm:p-8 rounded-lg shadow-inner card">
         <h2 class="text-2xl sm:text-3xl md:text-4xl font-bold mb-4 sm:mb-6 text-[#4A4A4A]">✨ AIキャプションメーカー ✨</h2>
         <p class="text-sm sm:text-lg mb-6 sm:mb-8 text-[#6B6B6B]">第70回記念表美展に出展するあなたの作品をアップロードして、AIに「温故創新」のテーマに沿ったキャプションを生成してもらいましょう。</p>
 
@@ -132,6 +137,12 @@
             <p class="text-gray-400">ここにAIによるキャプションが表示されます。</p>
         </div>
     </main>
+
+    <!-- Modal for Chat -->
+    <div id="modal-overlay" class="fixed inset-0 bg-black bg-opacity-60 hidden items-center justify-center z-50 p-4" onclick="closeModal(event)">
+        <div id="modal-content" class="bg-white p-6 sm:p-8 rounded-lg shadow-xl w-full max-w-2xl relative max-h-[90vh] flex flex-col" onclick="event.stopPropagation()">
+        </div>
+    </div>
 
     <footer class="mt-8 text-center text-xs text-gray-500">
         <p>2025 京都表具協同組合 All Rights Reserved.</p>
@@ -297,11 +308,13 @@
         }
         
         async function startChat(captionIndex, initialCaption) {
-            const resultDiv = document.getElementById('imageAnalysisResult');
-            resultDiv.innerHTML = `
-                <div id="chatInterface" class="space-y-4">
-                    <button onclick="resetApp()" class="button text-sm py-1 px-3 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors mb-4">← 最初の画面に戻る</button>
-                    <div id="chatHistory" class="h-64 sm:h-80 overflow-y-auto p-2 sm:p-4 bg-gray-50 rounded-md border border-gray-200">
+            const modalOverlay = document.getElementById('modal-overlay');
+            const modalContent = document.getElementById('modal-content');
+            
+            const chatHtml = `
+                <button onclick="closeModal()" class="absolute top-4 right-4 text-gray-500 hover:text-gray-800 text-2xl">&times;</button>
+                <div id="chatInterface" class="space-y-4 flex flex-col h-full">
+                    <div id="chatHistory" class="flex-grow overflow-y-auto p-2 sm:p-4 bg-gray-50 rounded-md border border-gray-200">
                         <div class="flex items-start mb-4">
                             <span class="flex-shrink-0 inline-flex items-center justify-center h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-[#0E4D92] text-white font-bold mr-2 sm:mr-3 text-sm">AI</span>
                             <div class="p-2 sm:p-3 bg-white rounded-lg shadow-sm w-full">
@@ -310,12 +323,24 @@
                             </div>
                         </div>
                     </div>
-                    <div class="flex">
+                    <div class="flex-shrink-0 flex">
                         <input type="text" id="chatInput" placeholder="例：もっと短くしてください" class="text-sm sm:text-base flex-grow p-2 rounded-l-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#0E4D92] transition-all">
                         <button onclick="sendChatMessage()" class="button py-2 px-4 sm:px-6 bg-[#0E4D92] text-white rounded-r-md hover:bg-[#1263B7] text-sm sm:text-base">送信</button>
                     </div>
-                </div>`;
+                </div>
+            `;
+            modalContent.innerHTML = chatHtml;
+            modalOverlay.classList.remove('hidden');
+            modalOverlay.classList.add('flex');
             document.getElementById('chatInput').focus();
+        }
+
+        function closeModal(event) {
+            if (event && event.target.id !== 'modal-overlay') return;
+            const modalOverlay = document.getElementById('modal-overlay');
+            modalOverlay.classList.add('hidden');
+            modalOverlay.classList.remove('flex');
+            modalOverlay.querySelector('#modal-content').innerHTML = '';
         }
 
         async function sendChatMessage() {
@@ -399,11 +424,68 @@
         async function generateSocialMediaPost(index, caption) {
             const extraContentDiv = document.getElementById(`extra-content-${index}`);
             extraContentDiv.innerHTML = `<div class="p-4 bg-gray-50 rounded-lg"><div class="flex flex-col items-center space-y-2"><div class="dot-pulse"></div><p class="text-sm text-gray-500">AIがSNS投稿を作成しています...</p></div></div>`;
+             try {
+                const prompt = `あなたはプロのSNSマーケターです。以下の作品キャプションを元に、見た人が「いいね！」を押したくなるような、好感度の高いInstagramの投稿文を、簡潔に作成してください。作者（表具師）の作品への想いやこだわりが、親しみやすく、かつ魅力的に伝わるような文章をお願いします。最後に、展覧会の情報（第70回記念表美展、会場：みやこめっせ）と、効果的なハッシュタグ（#第70回記念表美展 #温故創新 #京都表具協同組合 #表美展 #京都 #表具 #伝統工芸 #アートなど）を必ず含めてください。\n\nキャプション:\n「${caption}」`;
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${API_KEY}`;
+                const payload = {
+                    contents: [{ parts: [{ text: prompt }] }],
+                     generationConfig: {
+                        responseMimeType: "application/json",
+                        responseSchema: {
+                            type: "OBJECT",
+                            properties: { "post": { "type": "STRING" } },
+                            "propertyOrdering": ["post"]
+                        }
+                    }
+                };
+
+                const result = await fetchWithRetry(apiUrl, payload);
+                 if (result && result.candidates && result.candidates[0].content.parts[0].text) {
+                    const post = JSON.parse(result.candidates[0].content.parts[0].text).post;
+                    let postHtml = `
+                        <div class="p-4 bg-gray-50 rounded-lg extra-content-card">
+                            <div class="flex justify-between items-center mb-2 flex-wrap gap-2">
+                                <h4 class="font-bold text-md text-gray-800">SNS投稿案</h4>
+                                <div class="flex items-center gap-2">
+                                     <button onclick="copyToClipboard(this)" class="button text-sm px-3 py-1 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300">コピー</button>
+                                     <button onclick="downloadCaption(\`${escapeHtml(post)}\`, 'sns')" class="button text-sm px-3 py-1 bg-gray-500 text-white rounded-md hover:bg-gray-600">💾 テキストの保存</button>
+                                     <button onclick="startSocialChat(${index}, \`${escapeHtml(post)}\`)" class="button text-sm px-3 py-1 bg-[#0E4D92] text-white rounded-md hover:bg-[#1263B7]">AIとチャット</button>
+                                     <button onclick="clearExtraContent(${index})" class="text-sm text-gray-500 hover:text-gray-800">閉じる</button>
+                                </div>
+                            </div>
+                            <p class="sns-post">${escapeHtml(post)}</p>
+                        </div>`;
+                    extraContentDiv.innerHTML = postHtml;
+                } else { throw new Error('APIから有効な応答がありませんでした。'); }
+            } catch (error) {
+                console.error('Error generating social media post:', error);
+                extraContentDiv.innerHTML = `<p class="text-red-500 text-sm">SNS投稿の生成中にエラーが発生しました。</p>`;
+            }
         }
         
         async function startSocialChat(captionIndex, initialPost) {
-            const resultDiv = document.getElementById('imageAnalysisResult');
-            resultDiv.innerHTML = `<div id="chatInterface" class="space-y-4">...</div>`;
+            const modalOverlay = document.getElementById('modal-overlay');
+            const modalContent = document.getElementById('modal-content');
+            const chatHtml = `
+                <button onclick="closeModal()" class="absolute top-4 right-4 text-gray-500 hover:text-gray-800 text-2xl">&times;</button>
+                <div id="chatInterface" class="space-y-4 flex flex-col h-full">
+                    <div id="chatHistory" class="flex-grow overflow-y-auto p-2 sm:p-4 bg-gray-50 rounded-md border border-gray-200">
+                        <div class="flex items-start mb-4">
+                            <span class="flex-shrink-0 inline-flex items-center justify-center h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-[#0E4D92] text-white font-bold mr-2 sm:mr-3 text-sm">AI</span>
+                            <div class="p-2 sm:p-3 bg-white rounded-lg shadow-sm w-full">
+                                <p class="text-sm sm:text-base">このSNS投稿を、どのように編集しましょうか？</p>
+                                <p class="mt-2 text-xs sm:text-sm text-gray-500 sns-post break-words">${initialPost}</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex-shrink-0 flex">
+                        <input type="text" id="chatInput" placeholder="例：もっと親しみやすい感じに" class="text-sm sm:text-base flex-grow p-2 rounded-l-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#0E4D92] transition-all">
+                        <button onclick="sendSocialChatMessage()" class="button py-2 px-4 sm:px-6 bg-[#0E4D92] text-white rounded-r-md hover:bg-[#1263B7] text-sm sm:text-base">送信</button>
+                    </div>
+                </div>`;
+            modalContent.innerHTML = chatHtml;
+            modalOverlay.classList.remove('hidden');
+            modalOverlay.classList.add('flex');
             document.getElementById('chatInput').focus();
         }
         
@@ -427,6 +509,83 @@
             const originalButtonText = buttonElement.textContent;
             const downloadBtn = buttonElement.nextElementSibling;
             let textToSpeak = text;
+
+            try {
+                if (lang.startsWith('en')) {
+                    buttonElement.textContent = "翻訳中...";
+                    buttonElement.disabled = true;
+                    const translatedText = await translateText(text, 'en');
+                    if (!translatedText) throw new Error('翻訳に失敗しました。');
+                    textToSpeak = translatedText;
+                }
+                
+                buttonElement.textContent = "音声生成中...";
+                buttonElement.disabled = true;
+                if (downloadBtn) downloadBtn.disabled = true;
+
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${API_KEY}`;
+                const prompt = lang.startsWith('ja') 
+                    ? `これは美術作品の解説文です。文脈に注意して、特に漢字の読み方（音読み、訓読み）が正確になるように、プロのナレーターとして、作品の背景にある物語を語りかけるように、自然な間を大切にしながら読んでください: ${textToSpeak}`
+                    : `Read this with a friendly and expressive tone: ${textToSpeak}`;
+                const payload = {
+                    model: "gemini-2.5-flash-preview-tts",
+                    contents: [{ parts: [{ text: prompt }] }],
+                    generationConfig: {
+                        responseModalities: ["AUDIO"],
+                        speechConfig: {
+                            voiceConfig: {
+                                prebuiltVoiceConfig: { voiceName: lang.startsWith('ja') ? "Charon" : "Callirrhoe" }
+                            }
+                        }
+                    }
+                };
+
+                const result = await fetchWithRetry(apiUrl, payload);
+                const part = result?.candidates?.[0]?.content?.parts?.[0];
+                const audioData = part?.inlineData?.data;
+                const mimeType = part?.inlineData?.mimeType;
+
+                if (audioData && mimeType && mimeType.startsWith("audio/")) {
+                    const sampleRateMatch = mimeType.match(/rate=(\d+)/);
+                    if (!sampleRateMatch) throw new Error("MIMEタイプからサンプルレートを取得できませんでした。");
+                    
+                    const sampleRate = parseInt(sampleRateMatch[1], 10);
+                    const pcmData = base64ToArrayBuffer(audioData);
+                    const pcm16 = new Int16Array(pcmData);
+                    const wavBlob = pcmToWav(pcm16, sampleRate);
+                    
+                    const arrayBuffer = await wavBlob.arrayBuffer();
+                    const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+                    const source = audioContext.createBufferSource();
+                    source.buffer = audioBuffer;
+                    source.connect(audioContext.destination);
+                    source.start(0);
+
+                    if (downloadBtn) {
+                        const audioUrl = URL.createObjectURL(wavBlob);
+                        downloadBtn.dataset.audioUrl = audioUrl;
+                        downloadBtn.disabled = false;
+                    }
+
+                } else {
+                    throw new Error("APIから有効な音声データが返されませんでした。");
+                }
+
+            } catch (error) {
+                console.error("音声生成エラー:", error);
+                let userErrorMessage = '音声生成に失敗しました。';
+                if (error.message && error.message.includes('429')) {
+                    userErrorMessage = 'AI音声生成の無料利用枠の上限に達しました。明日再度お試しください。';
+                }
+                const errorSpan = document.createElement('span');
+                errorSpan.className = 'text-xs text-red-500 ml-2';
+                errorSpan.textContent = userErrorMessage;
+                buttonElement.after(errorSpan);
+                setTimeout(() => { errorSpan.remove(); }, 5000);
+            } finally {
+                buttonElement.textContent = originalButtonText;
+                buttonElement.disabled = false;
+            }
         }
         
         function downloadStoredAudio(buttonElement) {
@@ -604,4 +763,5 @@
     </script>
 </body>
 </html>
+
 
