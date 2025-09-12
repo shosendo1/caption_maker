@@ -103,7 +103,6 @@
         <h2 class="text-2xl sm:text-3xl md:text-4xl font-bold mb-4 sm:mb-6 text-[#4A4A4A]">✨ AIキャプションメーカー ✨</h2>
         <p class="text-sm sm:text-lg mb-6 sm:mb-8 text-[#6B6B6B]">第70回記念表美展に出展するあなたの作品をアップロードして、AIに「温故創新」のテーマに沿ったキャプションを生成してもらいましょう。</p>
 
-        <!-- Image Preview Section -->
         <div id="imagePreviewContainer" class="mb-6 sm:mb-8 hidden">
             <img id="uploadedImage" class="max-h-[250px] sm:max-h-[400px] w-auto h-auto rounded-lg shadow-md mx-auto object-contain">
         </div>
@@ -139,17 +138,14 @@
     </footer>
 
     <script>
-        // ---全体で使う変数の設定---
         const API_KEY = "AIzaSyBmuD2c_M6Kg_GRk7TJpqXGNzsZGH3FeME";
         let currentImageBase64 = null;
         let currentKeywords = "";
         let currentMimeType = null;
-        let audioContext = null; // ★★★ スマートフォン対応のための音声コンテキスト
+        let audioContext = null;
 
-        // ---AIに渡す参考資料---
-        const EXHIBITION_DOCUMENT = `第70回記念表美展 開催要項...`; // 省略
+        const EXHIBITION_DOCUMENT = `第70回記念表美展 開催要項...`;
 
-        // ---画面の操作に関する関数---
         function displayFileName(event) {
             const fileInput = event.target;
             const fileNameSpan = document.getElementById('fileName');
@@ -167,30 +163,21 @@
             }
         }
         
-        // ★★★ スマートフォンでの音声再生を有効化するための初期化関数 ★★★
         function initAudio() {
             if (!audioContext) {
                 try {
                     audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                    // iOSなどで再生を有効化するため、空の音を再生する
                     if (audioContext.state === 'suspended') {
-                         const buffer = audioContext.createBuffer(1, 1, 22050);
-                         const source = audioContext.createBufferSource();
-                         source.buffer = buffer;
-                         source.connect(audioContext.destination);
-                         source.start(0);
+                         audioContext.resume();
                     }
                 } catch (e) {
                     console.error("Web Audio API is not supported in this browser");
                 }
             }
         }
-        // 最初のユーザー操作で音声機能を初期化
         document.body.addEventListener('click', initAudio, { once: true });
         document.body.addEventListener('touchend', initAudio, { once: true });
 
-
-        // ---AIとの通信に関するメインの関数---
         async function analyzeImage() {
             const fileInput = document.getElementById('imageInput');
             const keywordsInput = document.getElementById('keywordsInput');
@@ -213,20 +200,7 @@
                 currentKeywords = keywords;
                 currentMimeType = file.type;
                 
-                const prompt = `以下のドキュメントを参考に、この画像に写っている第70回記念表美展に出展する私の作品について、作者である表具師本人の目線で、3つの異なるキャプション案を生成してください。
-
-ドキュメント:
-"${EXHIBITION_DOCUMENT}"
-
-私の作品について、一人の表具師として、長年培ってきた技術や素材へのこだわり、そして「伝統的なものから新しい価値を生み出す」というテーマへの挑戦が伝わるように、キャプションを作成してください。作品の画像から読み取れる特徴（色、形、質感、構図、雰囲気など）に具体的に触れつつ、表具師ならではの専門的な視点や、作品に込めた精神性を語ってください。
-1つ目の案は、作品の**技術や素材の面白さ**、**形や色の美しさ**に点を当て、少し文学的で深みのある表現を使って、私がこの作品に込めた思いを説明してください。
-2つ目の案は、作品が持つ**物語性**や**感動的な側面**、**見る人に語りかけるメッセージ**に焦点を当て、共感を呼ぶような表現で、私がこの作品を通して伝えたいことを説明してください。
-3つ目の案は、作品の**見た目のインパクト**と、そこから生まれる**新しい表現の可能性**に焦点を当て、展示の場で目を引くような力強い表現で、私の表現への挑戦を説明してください。
-
-重要: 各キャプションは、展覧会場で来場者が読みやすいように、100文字から150文字程度の簡潔さでお願いします。各キャプションは独立した文章として完結させ、見出しや箇条書きは含めないでください。
-「温故創新」という言葉を直接使わないでください。
-
-${keywords ? `\n以下のキーワードをキャプションに反映させてください: ${keywords}` : ''}`;
+                const prompt = `以下のドキュメントを参考に、この画像に写っている第70回記念表美展に出展する私の作品について、作者である表具師本人の目線で、3つの異なるキャプション案を生成してください。ドキュメント:"${EXHIBITION_DOCUMENT}" 私の作品について、一人の表具師として、長年培ってきた技術や素材へのこだわり、そして「伝統的なものから新しい価値を生み出す」というテーマへの挑戦が伝わるように、キャプションを作成してください。作品の画像から読み取れる特徴（色、形、質感、構図、雰囲気など）に具体的に触れつつ、表具師ならではの専門的な視点や、作品に込めた精神性を語ってください。1つ目の案は、作品の**技術や素材の面白さ**、**形や色の美しさ**に点を当て、少し文学的で深みのある表現を使って、私がこの作品に込めた思いを説明してください。2つ目の案は、作品が持つ**物語性**や**感動的な側面**、**見る人に語りかけるメッセージ**に焦点を当て、共感を呼ぶような表現で、私がこの作品を通して伝えたいことを説明してください。3つ目の案は、作品の**見た目のインパクト**と、そこから生まれる**新しい表現の可能性**に焦点を当て、展示の場で目を引くような力強い表現で、私の表現への挑戦を説明してください。重要: 各キャプションは、展覧会場で来場者が読みやすいように、100文字から150文字程度の簡潔さでお願いします。各キャプションは独立した文章として完結させ、見出しや箇条書きは含めないでください。「温故創新」という言葉を直接使わないでください。${keywords ? `\n以下のキーワードをキャプションに反映させてください: ${keywords}` : ''}`;
                     
                 const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${API_KEY}`;
                 
@@ -248,60 +222,73 @@ ${keywords ? `\n以下のキーワードをキャプションに反映させて�
                 try {
                     const result = await fetchWithRetry(apiUrl, payload);
                     
-                    if (!result) throw new Error('APIから空の応答を受け取りました。');
+                    if (!result) {
+                        throw new Error('APIから空の応答を受け取りました。サーバーが混み合っている可能性があります。');
+                    }
+                    if (!result.candidates) {
+                        let reason = result.promptFeedback?.blockReason || '不明';
+                        if(reason === 'SAFETY') reason = 'AIの安全フィルターが作動しました';
+                        throw new Error(`AIが応答を生成できませんでした。理由: ${reason}。`);
+                    }
+
+                    const candidate = result.candidates[0];
+
+                    if (candidate.finishReason && candidate.finishReason !== "STOP" && candidate.finishReason !== "MAX_TOKENS") {
+                        let reasonText = candidate.finishReason;
+                        if (reasonText === 'SAFETY') reasonText = 'AIの安全フィルターが作動しました';
+                        throw new Error(`AIが応答を生成できませんでした。理由: ${reasonText}。`);
+                    }
+
+                    if (!candidate.content?.parts?.[0]?.text) {
+                        console.error("Invalid response structure:", result);
+                        throw new Error('APIから有効な応答データが見つかりませんでした。');
+                    }
                     
-                    if (result.candidates && result.candidates[0].content.parts[0].text) {
-                        const rawJsonText = result.candidates[0].content.parts[0].text;
-                        let captions;
-                        try {
-                            captions = JSON.parse(rawJsonText);
-                        } catch (e) {
-                            const jsonMatch = rawJsonText.match(/\[\s*\{[\s\S]*\}\s*\]/);
-                            if (jsonMatch && jsonMatch[0]) { captions = JSON.parse(jsonMatch[0]); } 
-                            else { throw new Error('API応答に有効なJSONブロックが見つかりませんでした。'); }
-                        }
-                        
-                        if (!Array.isArray(captions) || captions.length < 3 || !captions[0].caption) {
-                            throw new Error('無効なJSON構造です。');
-                        }
+                    const rawJsonText = candidate.content.parts[0].text;
+                    let captions;
+                    try {
+                        captions = JSON.parse(rawJsonText);
+                    } catch (e) {
+                        const jsonMatch = rawJsonText.match(/\[\s*\{[\s\S]*\}\s*\]/);
+                        if (jsonMatch && jsonMatch[0]) { captions = JSON.parse(jsonMatch[0]); } 
+                        else { throw new Error('API応答に有効なJSONブロックが見つかりませんでした。'); }
+                    }
+                    
+                    if (!Array.isArray(captions) || captions.length < 3 || !captions[0].caption) {
+                        throw new Error('無効なJSON構造です。');
+                    }
 
-                        let resultHtml = `
-                            <div class="space-y-6">
-                                ${captions.map((item, index) => `
-                                    <div class="p-4 rounded-md card">
-                                        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                                            <h3 class="font-bold text-md sm:text-lg text-left text-[#4A4A4A]">キャプション案${index + 1}</h3>
-                                            <div class="flex space-x-2 self-end sm:self-auto">
-                                                <button onclick="copyToClipboard(this)" class="button text-sm px-3 py-1 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors whitespace-nowrap">コピー</button>
-                                                <button onclick="downloadCaption(\`${escapeHtml(item.caption)}\`, ${index + 1})" class="button text-sm px-3 py-1 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors whitespace-nowrap">💾 テキストの保存</button>
-                                                <button onclick="startChat(${index}, \`${escapeHtml(item.caption)}\`)" class="button text-sm px-3 py-1 bg-[#0E4D92] text-white rounded-md hover:bg-[#1263B7] whitespace-nowrap">AIとチャット</button>
-                                            </div>
+                    let resultHtml = `
+                        <div class="space-y-6">
+                            ${captions.map((item, index) => `
+                                <div class="p-4 rounded-md card">
+                                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                                        <h3 class="font-bold text-md sm:text-lg text-left text-[#4A4A4A]">キャプション案${index + 1}</h3>
+                                        <div class="flex space-x-2 self-end sm:self-auto">
+                                            <button onclick="copyToClipboard(this)" class="button text-sm px-3 py-1 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors whitespace-nowrap">コピー</button>
+                                            <button onclick="downloadCaption(\`${escapeHtml(item.caption)}\`, ${index + 1})" class="button text-sm px-3 py-1 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors whitespace-nowrap">💾 テキストの保存</button>
+                                            <button onclick="startChat(${index}, \`${escapeHtml(item.caption)}\`)" class="button text-sm px-3 py-1 bg-[#0E4D92] text-white rounded-md hover:bg-[#1263B7] whitespace-nowrap">AIとチャット</button>
                                         </div>
-                                        <p class="mt-4 text-left caption-text" data-index="${index}">${escapeHtml(item.caption)}</p>
-                                        <div class="mt-4 pt-4 border-t border-gray-200 flex flex-wrap gap-2 justify-between items-center">
-                                            <div class="flex items-center gap-2">
-                                                <button onclick="speakText(this, \`${escapeHtml(item.caption)}\`, 'ja-JP')" class="button text-sm px-3 py-1 bg-red-600 text-white rounded-md hover:bg-red-700">🔊 日本語ナレーション</button>
-                                                <button onclick="downloadStoredAudio(this)" data-lang="ja-JP" disabled class="button text-sm px-3 py-1 bg-gray-400 text-white rounded-md">💾 保存</button>
-                                                <button onclick="speakText(this, \`${escapeHtml(item.caption)}\`, 'en-US')" class="button text-sm px-3 py-1 bg-indigo-500 text-white rounded-md hover:bg-indigo-600">🔊 英語ナレーション</button>
-                                                <button onclick="downloadStoredAudio(this)" data-lang="en-US" disabled class="button text-sm px-3 py-1 bg-gray-400 text-white rounded-md">💾 保存</button>
-                                            </div>
-                                            <button onclick="generateSocialMediaPost(${index}, \`${escapeHtml(item.caption)}\`)" class="button text-sm px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700">✨ SNS投稿を作成</button>
-                                        </div>
-                                        <div id="extra-content-${index}" class="mt-4 text-left"></div>
                                     </div>
-                                `).join('')}
-                            </div>
-                        `;
-                        resultDiv.innerHTML = resultHtml;
-
-                    } else { throw new Error('APIから有効な応答がありませんでした。'); }
+                                    <p class="mt-4 text-left caption-text" data-index="${index}">${escapeHtml(item.caption)}</p>
+                                    <div class="mt-4 pt-4 border-t border-gray-200 flex flex-wrap gap-2 justify-between items-center">
+                                        <div class="flex items-center gap-2">
+                                            <button onclick="speakText(this, \`${escapeHtml(item.caption)}\`, 'ja-JP')" class="button text-sm px-3 py-1 bg-red-600 text-white rounded-md hover:bg-red-700">🔊 日本語ナレーション</button>
+                                            <button onclick="downloadStoredAudio(this)" data-lang="ja-JP" disabled class="button text-sm px-3 py-1 bg-gray-400 text-white rounded-md">💾 保存</button>
+                                            <button onclick="speakText(this, \`${escapeHtml(item.caption)}\`, 'en-US')" class="button text-sm px-3 py-1 bg-indigo-500 text-white rounded-md hover:bg-indigo-600">🔊 英語ナレーション</button>
+                                            <button onclick="downloadStoredAudio(this)" data-lang="en-US" disabled class="button text-sm px-3 py-1 bg-gray-400 text-white rounded-md">💾 保存</button>
+                                        </div>
+                                        <button onclick="generateSocialMediaPost(${index}, \`${escapeHtml(item.caption)}\`)" class="button text-sm px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700">✨ SNS投稿を作成</button>
+                                    </div>
+                                    <div id="extra-content-${index}" class="mt-4 text-left"></div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                    resultDiv.innerHTML = resultHtml;
                 } catch (error) {
                     console.error('Error analyzing image:', error);
-                    let errorMessage;
-                    if (error.message && error.message.includes('403')) {
-                        errorMessage = `<div class="text-left">...</div>`;
-                    } else { errorMessage = `<p class="text-red-500">キャプションの生成中にエラーが発生しました。詳細: ${error.message}</p>`; }
-                    resultDiv.innerHTML = errorMessage;
+                    resultDiv.innerHTML = `<p class="text-red-500">キャプションの生成中にエラーが発生しました。詳細: ${error.message}</p>`;
                 } finally {
                     generateButton.disabled = false;
                 }
@@ -309,28 +296,128 @@ ${keywords ? `\n以下のキーワードをキャプションに反映させて�
             reader.readAsDataURL(file);
         }
         
-        // ---AIとのチャット機能に関する関数---
-        async function startChat(captionIndex, initialCaption) { /* ... 省略 ... */ }
-        async function sendChatMessage() { /* ... 省略 ... */ }
+        async function startChat(captionIndex, initialCaption) {
+            const resultDiv = document.getElementById('imageAnalysisResult');
+            resultDiv.innerHTML = `
+                <div id="chatInterface" class="space-y-4">
+                    <button onclick="resetApp()" class="button text-sm py-1 px-3 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors mb-4">← 最初の画面に戻る</button>
+                    <div id="chatHistory" class="h-64 sm:h-80 overflow-y-auto p-2 sm:p-4 bg-gray-50 rounded-md border border-gray-200">
+                        <div class="flex items-start mb-4">
+                            <span class="flex-shrink-0 inline-flex items-center justify-center h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-[#0E4D92] text-white font-bold mr-2 sm:mr-3 text-sm">AI</span>
+                            <div class="p-2 sm:p-3 bg-white rounded-lg shadow-sm w-full">
+                                <p class="text-sm sm:text-base">このキャプションを、どのように編集しましょうか？</p>
+                                <p class="mt-2 text-xs sm:text-sm text-gray-500 caption-text break-words">"${initialCaption}"</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex">
+                        <input type="text" id="chatInput" placeholder="例：もっと短くしてください" class="text-sm sm:text-base flex-grow p-2 rounded-l-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#0E4D92] transition-all">
+                        <button onclick="sendChatMessage()" class="button py-2 px-4 sm:px-6 bg-[#0E4D92] text-white rounded-r-md hover:bg-[#1263B7] text-sm sm:text-base">送信</button>
+                    </div>
+                </div>`;
+            document.getElementById('chatInput').focus();
+        }
 
-        // --- SNS投稿機能 ---
-        async function generateSocialMediaPost(index, caption) { /* ... 省略 ... */ }
-        async function startSocialChat(captionIndex, initialPost) { /* ... 省略 ... */ }
-        async function sendSocialChatMessage() { /* ... 省略 ... */ }
-        
-        // ---補助的な関数---
-        
-        // ★★★ 音声出力機能 (Gemini TTS API版) ★★★
-        async function speakText(buttonElement, text, lang) {
-            initAudio(); // 念のため、ここでも呼び出す
+        async function sendChatMessage() {
+            const chatInput = document.getElementById('chatInput');
+            const userMessage = chatInput.value;
+            const chatHistory = document.getElementById('chatHistory');
             
+            if (!userMessage.trim()) return;
+
+            const userMessageDiv = document.createElement('div');
+            userMessageDiv.className = "flex items-start justify-end mb-4";
+            userMessageDiv.innerHTML = `
+                <div class="p-2 sm:p-3 bg-[#EBF5FF] rounded-lg shadow-sm max-w-[80%]">
+                    <p class="text-sm sm:text-base break-words">${escapeHtml(userMessage)}</p>
+                </div>
+                <span class="flex-shrink-0 inline-flex items-center justify-center h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-gray-400 text-white font-bold ml-2 sm:ml-3 text-sm">あなた</span>
+            `;
+            chatHistory.appendChild(userMessageDiv);
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+            chatInput.value = "";
+            
+            const loadingDiv = document.createElement('div');
+            loadingDiv.id = "loadingIndicator";
+            loadingDiv.className = "flex items-start mb-4";
+            loadingDiv.innerHTML = `<span class="flex-shrink-0 inline-flex items-center justify-center h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-[#0E4D92] text-white font-bold mr-2 sm:mr-3 text-sm">AI</span><div class="p-2 sm:p-3 bg-white rounded-lg shadow-sm"><div class="dot-pulse"></div></div>`;
+            chatHistory.appendChild(loadingDiv);
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+            
+            const currentCaptionElement = chatHistory.querySelector('.caption-text');
+            const currentCaption = currentCaptionElement ? currentCaptionElement.textContent.trim().replace(/^"/, '').replace(/"$/, '') : "";
+            
+            try {
+                const prompt = `以下のキャプションを、ユーザーの指示に沿って、作者である表具師の視点をより強く反映させて再生成してください。\n\n現在のキャプション: "${currentCaption}"\nユーザーの指示: "${userMessage}"\n${currentKeywords ? `以下のキーワードも考慮してください: ${currentKeywords}` : ''}`;
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${API_KEY}`;
+                const payload = {
+                    contents: [{ parts: [{ text: prompt }, { inlineData: { mimeType: currentMimeType, data: currentImageBase64 } }] }],
+                    generationConfig: {
+                        responseMimeType: "application/json",
+                        responseSchema: { type: "OBJECT", properties: { "caption": { "type": "STRING" } }, "propertyOrdering": ["caption"] }
+                    }
+                };
+                
+                const result = await fetchWithRetry(apiUrl, payload);
+                loadingDiv.remove();
+                
+                if (result && result.candidates && result.candidates[0].content.parts[0].text) {
+                    const rawJsonText = result.candidates[0].content.parts[0].text;
+                    let newCaption;
+                    try { newCaption = JSON.parse(rawJsonText).caption; } catch (e) {
+                        const captionMatch = rawJsonText.match(/"caption"\s*:\s*"(.*?)"/s);
+                        newCaption = captionMatch ? captionMatch[1] : rawJsonText;
+                    }
+                    
+                    const aiMessageDiv = document.createElement('div');
+                    aiMessageDiv.className = "flex items-start mb-4";
+                    aiMessageDiv.innerHTML = `
+                        <span class="flex-shrink-0 inline-flex items-center justify-center h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-[#0E4D92] text-white font-bold mr-2 sm:mr-3 text-sm">AI</span>
+                        <div class="p-2 sm:p-3 bg-white rounded-lg shadow-sm w-full">
+                            <p class="text-sm sm:text-base break-words">${escapeHtml(newCaption)}</p>
+                            <div class="mt-4 pt-4 border-t border-gray-200 flex flex-wrap gap-2 items-center">
+                                <button onclick="copyToClipboard(this)" class="button text-xs px-2 py-1 bg-gray-200 text-gray-700 rounded-md">コピー</button>
+                                <button onclick="downloadCaption(\`${escapeHtml(newCaption)}\`, 0)" class="button text-xs px-2 py-1 bg-gray-500 text-white rounded-md">💾 テキストの保存</button>
+                                <button onclick="speakText(this, \`${escapeHtml(newCaption)}\`, 'ja-JP')" class="button text-xs px-2 py-1 bg-red-600 text-white rounded-md">🔊 日本語ナレーション</button>
+                                <button onclick="downloadStoredAudio(this)" data-lang="ja-JP" disabled class="button text-xs px-2 py-1 bg-gray-400 text-white rounded-md">💾 保存</button>
+                                <button onclick="speakText(this, \`${escapeHtml(newCaption)}\`, 'en-US')" class="button text-xs px-2 py-1 bg-indigo-500 text-white rounded-md">🔊 英語ナレーション</button>
+                                <button onclick="downloadStoredAudio(this)" data-lang="en-US" disabled class="button text-xs px-2 py-1 bg-gray-400 text-white rounded-md">💾 保存</button>
+                            </div>
+                        </div>
+                    `;
+                    chatHistory.appendChild(aiMessageDiv);
+                    chatHistory.scrollTop = chatHistory.scrollHeight;
+
+                    if (currentCaptionElement) { currentCaptionElement.textContent = `"${escapeHtml(newCaption)}"`; }
+                } else { throw new Error('APIから有効な応答がありませんでした。'); }
+            } catch (error) {
+                console.error('Error in chat:', error);
+                loadingDiv.remove();
+            }
+        }
+
+        async function generateSocialMediaPost(index, caption) {
+            const extraContentDiv = document.getElementById(`extra-content-${index}`);
+            extraContentDiv.innerHTML = `<div class="p-4 bg-gray-50 rounded-lg"><div class="flex flex-col items-center space-y-2"><div class="dot-pulse"></div><p class="text-sm text-gray-500">AIがSNS投稿を作成しています...</p></div></div>`;
+        }
+        
+        async function startSocialChat(captionIndex, initialPost) {
+            const resultDiv = document.getElementById('imageAnalysisResult');
+            resultDiv.innerHTML = `<div id="chatInterface" class="space-y-4">...</div>`;
+            document.getElementById('chatInput').focus();
+        }
+        
+        async function sendSocialChatMessage() {
+             const chatInput = document.getElementById('chatInput');
+            const userMessage = chatInput.value;
+            const chatHistory = document.getElementById('chatHistory');
+
+            if (!userMessage.trim()) return;
+        }
+        
+        async function speakText(buttonElement, text, lang) {
+            initAudio();
             if (!audioContext) {
-                const errorSpan = document.createElement('span');
-                errorSpan.className = 'text-xs text-red-500 ml-2';
-                errorSpan.textContent = '音声再生に非対応です';
-                buttonElement.after(errorSpan);
-                setTimeout(() => { errorSpan.remove(); }, 3000);
-                buttonElement.disabled = true;
                 return;
             }
              if (audioContext.state === 'suspended') {
@@ -340,94 +427,181 @@ ${keywords ? `\n以下のキーワードをキャプションに反映させて�
             const originalButtonText = buttonElement.textContent;
             const downloadBtn = buttonElement.nextElementSibling;
             let textToSpeak = text;
+        }
+        
+        function downloadStoredAudio(buttonElement) {
+             const audioUrl = buttonElement.dataset.audioUrl;
+            if (!audioUrl) return;
+            const lang = buttonElement.dataset.lang;
+            const filename = lang.startsWith('ja') ? 'caption_jp.wav' : 'caption_en.wav';
+            const link = document.createElement('a');
+            link.href = audioUrl;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
 
+        function downloadCaption(text, index) {
+            const filename = typeof index === 'number' ? `caption_an_${index}.txt` : `sns_post.txt`;
+            const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        }
+
+        function base64ToArrayBuffer(base64) {
+            const binaryString = window.atob(base64);
+            const len = binaryString.length;
+            const bytes = new Uint8Array(len);
+            for (let i = 0; i < len; i++) {
+                bytes[i] = binaryString.charCodeAt(i);
+            }
+            return bytes.buffer;
+        }
+        function pcmToWav(pcmData, sampleRate) {
+            const buffer = new ArrayBuffer(44 + pcmData.length * 2);
+            const view = new DataView(buffer);
+            writeString(view, 0, 'RIFF');
+            view.setUint32(4, 36 + pcmData.length * 2, true);
+            writeString(view, 8, 'WAVE');
+            writeString(view, 12, 'fmt ');
+            view.setUint32(16, 16, true);
+            view.setUint16(20, 1, true);
+            view.setUint16(22, 1, true);
+            view.setUint32(24, sampleRate, true);
+            view.setUint32(28, sampleRate * 2, true);
+            view.setUint16(32, 2, true);
+            view.setUint16(34, 16, true);
+            writeString(view, 36, 'data');
+            view.setUint32(40, pcmData.length * 2, true);
+            for (let i = 0; i < pcmData.length; i++) {
+                view.setInt16(44 + i * 2, pcmData[i], true);
+            }
+            return new Blob([view], { type: 'audio/wav' });
+        }
+        function writeString(view, offset, string) {
+            for (let i = 0; i < string.length; i++) {
+                view.setUint8(offset + i, string.charCodeAt(i));
+            }
+        }
+        async function translateText(text, targetLang) {
             try {
-                if (lang.startsWith('en')) {
-                    buttonElement.textContent = "翻訳中...";
-                    buttonElement.disabled = true;
-                    const translatedText = await translateText(text, 'en');
-                    if (!translatedText) throw new Error('翻訳に失敗しました。');
-                    textToSpeak = translatedText;
-                }
-                
-                buttonElement.textContent = "音声生成中...";
-                buttonElement.disabled = true;
-                if (downloadBtn) downloadBtn.disabled = true;
-
-                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${API_KEY}`;
-                const prompt = lang.startsWith('ja') 
-                    ? `これは美術作品の解説文です。文脈に注意して、特に漢字の読み方（音読み、訓読み）が正確になるように、親しみやすく、抑揚をつけて読んでください: ${textToSpeak}`
-                    : `Read this with a friendly and expressive tone: ${textToSpeak}`;
+                const prompt = `Translate the following Japanese text to English:\n\n"${text}"`;
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${API_KEY}`;
                 const payload = {
-                    model: "gemini-2.5-flash-preview-tts",
                     contents: [{ parts: [{ text: prompt }] }],
                     generationConfig: {
-                        responseModalities: ["AUDIO"],
-                        speechConfig: {
-                            voiceConfig: {
-                                prebuiltVoiceConfig: { voiceName: lang.startsWith('ja') ? "Puck" : "Callirrhoe" }
-                            }
+                        responseMimeType: "application/json",
+                        responseSchema: {
+                            type: "OBJECT",
+                            properties: { "translation": { "type": "STRING" } },
+                            "propertyOrdering": ["translation"]
                         }
                     }
                 };
-
                 const result = await fetchWithRetry(apiUrl, payload);
-                const part = result?.candidates?.[0]?.content?.parts?.[0];
-                const audioData = part?.inlineData?.data;
-                const mimeType = part?.inlineData?.mimeType;
-
-                if (audioData && mimeType && mimeType.startsWith("audio/")) {
-                    const sampleRateMatch = mimeType.match(/rate=(\d+)/);
-                    if (!sampleRateMatch) throw new Error("MIMEタイプからサンプルレートを取得できませんでした。");
-                    
-                    const sampleRate = parseInt(sampleRateMatch[1], 10);
-                    const pcmData = base64ToArrayBuffer(audioData);
-                    const pcm16 = new Int16Array(pcmData);
-                    const wavBlob = pcmToWav(pcm16, sampleRate);
-                    
-                    const arrayBuffer = await wavBlob.arrayBuffer();
-                    const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-                    const source = audioContext.createBufferSource();
-                    source.buffer = audioBuffer;
-                    source.connect(audioContext.destination);
-                    source.start(0);
-
-                    if (downloadBtn) {
-                        const audioUrl = URL.createObjectURL(wavBlob);
-                        downloadBtn.dataset.audioUrl = audioUrl;
-                        downloadBtn.disabled = false;
-                    }
-
+                if (result && result.candidates && result.candidates[0].content.parts[0].text) {
+                    return JSON.parse(result.candidates[0].content.parts[0].text).translation;
                 } else {
-                    throw new Error("APIから有効な音声データが返されませんでした。");
+                    throw new Error('APIから有効な翻訳がありませんでした。');
                 }
-
             } catch (error) {
-                console.error("音声生成エラー:", error);
-                const errorSpan = document.createElement('span');
-                errorSpan.className = 'text-xs text-red-500 ml-2';
-                errorSpan.textContent = '音声生成に失敗';
-                buttonElement.after(errorSpan);
-                setTimeout(() => { errorSpan.remove(); }, 3000);
-            } finally {
-                buttonElement.textContent = originalButtonText;
-                buttonElement.disabled = false;
+                 console.error("Translation error:", error);
+                 return null;
             }
         }
-        
-        function downloadStoredAudio(buttonElement) { /* ... 省略 ... */ }
-        function downloadCaption(text, index) { /* ... 省略 ... */ }
-        function base64ToArrayBuffer(base64) { /* ... 省略 ... */ }
-        function pcmToWav(pcmData, sampleRate) { /* ... 省略 ... */ }
-        function writeString(view, offset, string) { /* ... 省略 ... */ }
-        async function translateText(text, targetLang) { /* ... 省略 ... */ }
-        function resetApp() { /* ... 省略 ... */ }
-        async function fetchWithRetry(url, payload, retries = 3) { /* ... 省略 ... */ }
-        function copyToClipboard(buttonElement) { /* ... 省略 ... */ }
-        function clearExtraContent(index) { /* ... 省略 ... */ }
-        function escapeHtml(unsafe) { /* ... 省略 ... */ }
+        function resetApp() {
+            document.getElementById('imageAnalysisResult').innerHTML = '<p class="text-gray-400">ここにAIによるキャプションが表示されます。</p>';
+            document.getElementById('imageInput').value = '';
+            document.getElementById('keywordsInput').value = '';
+            document.getElementById('fileName').textContent = 'ファイルを選択';
+            document.getElementById('imagePreviewContainer').classList.add('hidden');
+        }
+        async function fetchWithRetry(url, payload, retries = 3) {
+            let lastError;
+            for (let i = 0; i < retries; i++) {
+                try {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        console.error("API Error Response:", errorText);
+                        if (response.status === 429) {
+                            throw new Error(`API returned client error: 429 Too Many Requests`);
+                        }
+                        if (response.status >= 400 && response.status < 500) {
+                             throw new Error(`API returned client error: ${response.status} ${response.statusText}`);
+                        }
+                        throw new Error(`API returned server error: ${response.status} ${response.statusText}`);
+                    }
+                    
+                    const responseText = await response.text();
+                     if (!responseText) {
+                        return null;
+                    }
+                    
+                    return JSON.parse(responseText);
+
+                } catch (error) {
+                    lastError = error;
+                    console.error(`Attempt ${i + 1} failed:`, error);
+                    if (error.message.includes('429')) {
+                        break; 
+                    }
+                    if (i < retries - 1) {
+                        const delay = Math.pow(2, i) * 1000 + Math.random() * 200;
+                        await new Promise(res => setTimeout(res, delay));
+                    }
+                }
+            }
+            throw lastError || new Error("All API retries failed without a specific error.");
+        }
+        function copyToClipboard(buttonElement) {
+             const container = buttonElement.closest('.card') || buttonElement.closest('div.bg-white');
+            const textElement = container.querySelector('.caption-text') || container.querySelector('p:not([class*="text-gray-500"])');
+            
+            if (textElement) {
+                const textToCopy = textElement.textContent;
+                const tempTextArea = document.createElement('textarea');
+                tempTextArea.value = textToCopy;
+                document.body.appendChild(tempTextArea);
+                tempTextArea.select();
+                try {
+                    document.execCommand('copy');
+                    const originalText = buttonElement.textContent;
+                    buttonElement.textContent = 'コピーしました！';
+                    setTimeout(() => {
+                       buttonElement.textContent = originalText;
+                    }, 2000);
+                } catch (err) {
+                    console.error('Failed to copy text: ', err);
+                } finally {
+                    document.body.removeChild(tempTextArea);
+                }
+            }
+        }
+        function clearExtraContent(index) {
+            document.getElementById(`extra-content-${index}`).innerHTML = '';
+        }
+        function escapeHtml(unsafe) {
+            return unsafe
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
     </script>
 </body>
 </html>
-
 
