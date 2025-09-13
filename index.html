@@ -177,6 +177,11 @@
                 try {
                     audioContext = new (window.AudioContext || window.webkitAudioContext)();
                     if (audioContext.state === 'suspended') {
+                         const buffer = audioContext.createBuffer(1, 1, 22050);
+                         const source = audioContext.createBufferSource();
+                         source.buffer = buffer;
+                         source.connect(audioContext.destination);
+                         source.start(0);
                          audioContext.resume();
                     }
                 } catch (e) {
@@ -594,7 +599,7 @@
                         responseModalities: ["AUDIO"],
                         speechConfig: {
                             voiceConfig: {
-                                prebuiltVoiceConfig: { voiceName: lang.startsWith('ja') ? "Charon" : "Callirrhoe" }
+                                prebuiltVoiceConfig: { voiceName: lang.startsWith('ja') ? "Sadaltager" : "Callirrhoe" }
                             }
                         }
                     }
@@ -823,3 +828,4 @@
     </script>
 </body>
 </html>
+
