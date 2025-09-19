@@ -174,7 +174,6 @@
             try {
                 audioContext = new (window.AudioContext || window.webkitAudioContext)();
                 if (audioContext.state === 'suspended') {
-                    // Play a silent sound on the first user interaction to unlock the audio context
                     const buffer = audioContext.createBuffer(1, 1, 22050);
                     const source = audioContext.createBufferSource();
                     source.buffer = buffer;
