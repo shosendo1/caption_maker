@@ -11,8 +11,11 @@
     <style>
         body {
             font-family: 'Noto Sans JP', sans-serif;
-            color: #4A4A4A;
-            background-color: #FBF9F3;
+            color: #333;
+            background-image: url('https://i.imgur.com/8E3yT47.jpeg');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
         }
         .button {
             transition: all 0.3s ease;
@@ -26,9 +29,11 @@
             opacity: 0.7;
         }
         .card {
-            background-color: rgba(255, 255, 255, 0.9);
-            border: 1px solid #E0D9C8;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            background-color: rgba(255, 255, 255, 0.95);
+            border: 1px solid rgba(224, 217, 200, 0.8);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
         }
         #imageAnalysisResult, #uploadedImage, .extra-content-card, #modal-content {
             animation: fadeIn 0.5s ease-out;
@@ -43,8 +48,8 @@
             width: 10px;
             height: 10px;
             border-radius: 5px;
-            background-color: #0E4D92;
-            color: #0E4D92;
+            background-color: #FFFFFF;
+            color: #FFFFFF;
             box-shadow: 9999px 0 0 -5px;
             animation: dot-pulse 1.5s infinite linear;
             animation-delay: .25s;
@@ -57,8 +62,8 @@
             width: 10px;
             height: 10px;
             border-radius: 5px;
-            background-color: #0E4D92;
-            color: #0E4D92;
+            background-color: #FFFFFF;
+            color: #FFFFFF;
         }
         .dot-pulse::before {
             box-shadow: 9984px 0 0 -5px;
@@ -208,7 +213,7 @@
                 return;
             }
 
-            resultDiv.innerHTML = '<div class="flex flex-col items-center space-y-2"><div class="dot-pulse"></div><p class="text-sm text-gray-500">AIが作品を分析中です。完了までしばらくお待ちください。</p></div>';
+            resultDiv.innerHTML = '<div class="flex flex-col items-center space-y-2"><div class="dot-pulse" style="background-color: #0E4D92; color: #0E4D92;"></div><p class="text-sm text-gray-500">AIが作品を分析中です。完了までしばらくお待ちください。</p></div>';
             generateButton.disabled = true;
 
             const reader = new FileReader();
